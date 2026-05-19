@@ -1,0 +1,25 @@
+services:
+    law-mysql:
+        image: mysql:8.0
+        environment:
+            MYSQL_ROOT_PASSWORD: @12345@
+            MYSQL_DATABASE: law_db
+        restart: always
+        ports:
+            - "2402:2402"
+        networks:
+            - database-network
+
+    law-phpmyadmin:
+        image: phpmyadmin
+        environment:
+            PMA_HOST: database-mysql
+            UPLOAD_LIMIT: 300M
+        restart: always
+        depends_on:
+            - law-mysql
+        ports:
+            - "1312:1312"
+networks:
+    database-network:
+        driver: bridge
