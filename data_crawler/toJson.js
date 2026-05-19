@@ -2,8 +2,8 @@ const fs = require('fs');
 const vm = require('vm');
 const path = require('path');
 
-const inputFile = path.join(__dirname, 'jsonData.js');
-const outputDir = __dirname;
+const inputFile = path.join('phap-dien/jsonData.js');
+const outputDir = 'phap-dien';
 
 const source = fs.readFileSync(inputFile, 'utf8');
 
