@@ -1,6 +1,12 @@
 import json
+import pathlib
+import os
+import uuid
+
+from bs4 import BeautifulSoup
 from db_config import db
 from db_models.mysql_model import *
+from utils import *
 
 # Kết nối với database và tạo bảng
 # db.connect(reuse_if_open=True)
@@ -36,4 +42,58 @@ print("Load tree nodes")
 with open("./phap-dien/treeNode.json", "r", encoding="utf_8") as f_tree_nodes:
     tree_nodes = json.load(f_tree_nodes)
 tree_nodes.close()
+
+demuc_dir = pathlib.Path("./phap-dien/demuc")
+
+for file in os.listdir(demuc_dir):
+    filename = os.fsdecode(file)
+    if filename.endswith(".html"):
+        filepath = os.path.join(demuc_dir, file)
+        with open(filepath, "r", encoding="utf_8") as demuc_file:
+            demuc_html = demuc_file.read()
+            demuc_html = BeautifulSoup(demuc_html, "html.parser")
+            demuc_node = [node for node in tree_nodes if node["DeMucID"] == filename.split(".")[0]]
+            if len(demuc_node) == 0:
+                print("Không tồn tại node cho đề mục:" + filename)
+                file.close()
+                continue
+            demuc_chuong = [node for node in demuc_node if node["Ten"].startswith("Chương ")]
+
+            #Insert Chương vào db
+            chuongs_data = []
+            for chuong in demuc_chuong:
+                try:
+                    chuong_data = PDChuong.create(
+                        chuong_id = chuong["MAPC"],
+                        chimuc = chuong["ChiMuc"],
+                        ten = chuong["ten"],
+                        stt = roman_to_int(chuong["ChiMuc"]),
+                        demuc_id = chuong["DeMucID"]
+                    )
+                except:
+                    continue
+                chuongs_data.append(chuong_data)
+
+            if len(chuongs_data) == 0:
+                chuong_data = PDChuong.create(
+                    chuong_id = uuid.uuid4(),
+                    chimuc = "0",
+                    ten = "",
+                    stt = 0,
+                    demuc_id = demuc_chuong[0]["MAPC"],
+                )
+                chuongs_data.append(chuong_data)
+
+
+
+
+
+
+
+
+
+
+
+
+
 

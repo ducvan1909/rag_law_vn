@@ -22,7 +22,6 @@ class PDChuong(BaseModel):
     ten = TextField()
     stt = IntegerField()
     demuc_id = ForeignKeyField(PDDeMuc, backref='chuongs')
-    chude_id = ForeignKeyField(PDChuDe, backref='chuongs')
 
 class PDDieu(BaseModel):
     dieu_id = CharField(max_length=64, primary_key=True)
