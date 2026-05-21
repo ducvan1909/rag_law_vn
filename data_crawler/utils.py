@@ -1,3 +1,5 @@
+import re
+
 def roman_to_int(roman: str) -> int:
     roman_values = {
         "I": 1,
