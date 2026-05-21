@@ -1,30 +1,20 @@
 import re
 
-def roman_to_int(roman: str) -> int:
-    roman_values = {
-        "I": 1,
-        "V": 5,
-        "X": 10,
-        "L": 50,
-        "C": 100,
-        "D": 500,
-        "M": 1000
-    }
-
-    total = 0
-    prev_value = 0
-
-    # Duyệt từ phải sang trái
-    for char in reversed(roman.upper()):
-        value = roman_values[char]
-
-        if value < prev_value:
-            total -= value
+def roman_to_int(roman_num: str) -> int:
+    roman_num = roman_num.upper()
+    roman_to_num = {'I': 10, 'V': 50, 'X': 100, 'L': 500, 'C': 1000, 'D': 5000, 'M': 10000}
+    alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I']
+    num = 0
+    for i in range(len(roman_num)):
+        romain_char = roman_num[i]
+        if romain_char not in roman_to_num.keys():
+            num += alphabet.index(romain_char) + 1
+            continue
+        if i > 0 and roman_to_num[romain_char] > roman_to_num[roman_num[i - 1]]:
+            num += roman_to_num[romain_char] - 2 * roman_to_num[roman_num[i - 1]]
         else:
-            total += value
-            prev_value = value
-
-    return total
+            num += roman_to_num[romain_char]
+    return num
 
 def extract_input(input_string):
     # Define a regular expression pattern to match the content inside parentheses
