@@ -23,3 +23,18 @@ def roman_to_int(roman: str) -> int:
             prev_value = value
 
     return total
+
+def extract_input(input_string):
+    # Define a regular expression pattern to match the content inside parentheses
+    pattern = r"\((.*?)\)"
+
+    # Use re.search to find the first match in the input string
+    match = re.search(pattern, input_string)
+
+    # Check if a match is found
+    if match:
+        # Extract and return the content inside parentheses
+        return match.group(1)
+    else:
+        # Return None if no match is found
+        return None
