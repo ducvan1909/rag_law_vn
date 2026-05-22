@@ -95,11 +95,11 @@ for file in os.listdir(demuc_dir):
             stt = 0
             for dieu in demuc_dieu:
                 if len(chuongs_data) == 1:
-                    dieu["ChuongID"] = chuongs_data[0].chuong_id
+                    chuong_id = chuongs_data[0].chuong_id
                 else:
                     for chuong_data in chuongs_data:
                         if dieu["MAPC"].startswith(chuong_data.chuong_id):
-                            dieu["ChuongID"] = chuong_data.chuong_id
+                            chuong_id = chuong_data.chuong_id
                             break
 
                 demuc_db = PDDeMuc.get_or_none(PDDeMuc.demuc_id == dieu["DeMucID"])
@@ -129,7 +129,7 @@ for file in os.listdir(demuc_dir):
                         chi_muc =  dieu["ChiMuc"],
                         ten_vbqppl = vbqppl,
                         link_vbqppl = vbqppl_link,
-                        chuong_id = dieu["ChuongID"],
+                        chuong_id = chuong_id,
                         demuc_id = dieu["DeMucID"],
                         chude_id = demuc_db.chude_id_id
                     )
@@ -165,7 +165,14 @@ for file in os.listdir(demuc_dir):
                 stt += 1
             demuc_file.close()
 
+existing_dieu_ids = {row.dieu_id for row in PDDieu.select(PDDieu.dieu_id)}
+
 for dieu_lienquan in dieus_lienquan:
+    if dieu_lienquan["dieu_id2"] not in existing_dieu_ids:
+        print(
+            f'missing_target điều liên quan {dieu_lienquan["dieu_id1"]} - {dieu_lienquan["dieu_id2"]}'
+        )
+        continue
     try:
         PDDieuLienQUan.create(
             dieu1 = dieu_lienquan["dieu_id1"],
