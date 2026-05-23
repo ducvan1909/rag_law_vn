@@ -2,6 +2,8 @@ import json
 import pathlib
 import os
 import uuid
+import time
+import atexit
 
 from collections import defaultdict
 from bs4 import BeautifulSoup
@@ -9,10 +11,17 @@ from db_config import db
 from db_models.mysql_model import *
 from utils import *
 
+
+start_time = time.perf_counter()
+def print_total_runtime():
+    elapsed = time.perf_counter() - start_time
+    print(f"\nTotal runtime: {elapsed:.2f} seconds")
+atexit.register(print_total_runtime)
+
 # Kết nối với database và tạo bảng
 db.connect(reuse_if_open=True)
-db.drop_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
-db.create_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
+# db.drop_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
+# db.create_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
 
 print("Load các chủ đề")
 with open("./phap-dien/chude.json", "r", encoding="utf_8") as f_chude:
@@ -62,7 +71,7 @@ for file in os.listdir(demuc_dir):
         filepath = os.path.join(demuc_dir, file)
         with open(filepath, "r", encoding="utf_8") as demuc_file:
             demuc_html = demuc_file.read()
-            demuc_html = BeautifulSoup(demuc_html, "html.parser")
+            demuc_html = BeautifulSoup(demuc_html, "lxml")
             demuc_node = tree_nodes_dict.get(filename.split(".")[0], [])
             demuc_chuong = [node for node in demuc_node if node["TEN"].startswith("Chương ")]
             demuc_dieu = [node for node in demuc_node if node["TEN"].startswith("Điều ")]

@@ -1,4 +1,5 @@
 peewee
 pymysql
 beautifulsoup4
+lxml
 pandas
