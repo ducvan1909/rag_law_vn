@@ -40,6 +40,7 @@ print("Load các đề mục")
 with open("./phap-dien/demuc.json", "r", encoding="utf_8") as f_demuc:
     demucs = json.load(f_demuc)
 f_demuc.close()
+demuc_dict = {demuc["Value"]: demuc for demuc in demucs}
 
 print("Insert các đề mục")
 try:
@@ -130,8 +131,8 @@ for file in os.listdir(demuc_dir):
                             chuong_id = chuong_data.chuong_id
                             break
 
-                demuc_db = PDDeMuc.get_or_none(PDDeMuc.demuc_id == dieu["DeMucID"])
-                if not demuc_db:
+                demuc_meta = demuc_dict.get(dieu["DeMucID"])
+                if not demuc_meta:
                     print(f"Không tìm thấy đề mục cho điều {dieu['MAPC']}")
                     continue
 
@@ -159,7 +160,7 @@ for file in os.listdir(demuc_dir):
                         link_vbqppl = vbqppl_link,
                         chuong_id = chuong_id,
                         demuc_id = dieu["DeMucID"],
-                        chude_id = demuc_db.chude_id_id
+                        chude_id = demuc_meta["ChuDe"]
                     ))
                     inserted_dieu.add(dieu["MAPC"])
                 except Exception as e:
