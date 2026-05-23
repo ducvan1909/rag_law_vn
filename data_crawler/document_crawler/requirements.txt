@@ -1,0 +1,7 @@
+pandas
+requests
+SQLAlchemy
+bs4
+beautifulsoup4
+pymysql
+pandas-stubs
