@@ -89,7 +89,9 @@ for file in os.listdir(demuc_dir):
                 except:
                     continue
             print(f'Inserted {len(chuongs_data)} chương của đề mục {filename.split(".")[0]}')
-            PDChuong.bulk_create(chuongs_data)
+
+            with db.atomic():
+                PDChuong.bulk_create(chuongs_data)
 
             #Tạo chương giả nếu không tồn tại chương
             if len(chuongs_data) == 0:
@@ -173,17 +175,25 @@ for file in os.listdir(demuc_dir):
                         if not "onclick" in lienquan_html.attrs or lienquan_html["onclick"] == "":
                             continue
                         dieu_id_lienquan = extract_input(lienquan_html["onclick"]).replace("'", "")
+
                         dieus_lienquan.append({"dieu_id1": dieu["MAPC"], "dieu_id2": dieu_id_lienquan})
 
                 stt += 1
-            PDDieu.bulk_create(dieus_data)
-            PDBang.bulk_create(tables)
-            PDFile.bulk_create(files)
+            with db.atomic():
+                PDDieu.bulk_create(dieus_data)
+                PDBang.bulk_create(tables)
+                PDFile.bulk_create(files)
             demuc_file.close()
 
 dieus_lienquan_data = []
 
 for dieu_lienquan in dieus_lienquan:
+    if dieu_lienquan["dieu_id1"] not in inserted_dieu:
+        print(f'{dieu_lienquan["dieu_id1"]} không tồn tại')
+        continue
+    if dieu_lienquan["dieu_id2"] not in inserted_dieu:
+        print(f'{dieu_lienquan["dieu_id2"]} không tồn tại')
+        continue
     try:
         dieus_lienquan_data.append(PDDieuLienQUan(
             dieu1 = dieu_lienquan["dieu_id1"],
@@ -192,7 +202,8 @@ for dieu_lienquan in dieus_lienquan:
     except Exception as e:
         print(f'Không thể insert điều liên quan {dieu_lienquan["dieu_id1"]} - {dieu_lienquan["dieu_id2"]}: {e}')
 
-PDDieuLienQUan.bulk_create(dieus_lienquan_data)
+with db.atomic():
+    PDDieuLienQUan.bulk_create(dieus_lienquan_data)
 
 
 
