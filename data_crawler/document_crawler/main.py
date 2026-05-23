@@ -52,17 +52,32 @@ def ensure_vbpl_table_schema():
                 text(
                     """
                     CREATE TABLE vbpl (
-                        id VARCHAR(32) NULL,
-                        noidung LONGTEXT NULL
+                        id VARCHAR(32) NOT NULL,
+                        noidung LONGTEXT NULL,
+                        PRIMARY KEY (id)
                     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
                     """
                 )
             )
         return
 
+    columns = {column["name"]: column for column in inspector.get_columns("vbpl")}
+    pk_columns = inspector.get_pk_constraint("vbpl").get("constrained_columns") or []
+    needs_primary_key = pk_columns != ["id"]
+    id_is_nullable = columns.get("id", {}).get("nullable", True)
+
     with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE vbpl MODIFY COLUMN id VARCHAR(32) NULL"))
+        if needs_primary_key or id_is_nullable:
+            # This job already rebuilds vbpl on every run, so truncate first to
+            # avoid migration failures caused by legacy NULL/duplicate ids.
+            conn.execute(text("TRUNCATE TABLE vbpl"))
+
+        conn.execute(text("ALTER TABLE vbpl MODIFY COLUMN id VARCHAR(32) NOT NULL"))
         conn.execute(text("ALTER TABLE vbpl MODIFY COLUMN noidung LONGTEXT NULL"))
+        if pk_columns and pk_columns != ["id"]:
+            conn.execute(text("ALTER TABLE vbpl DROP PRIMARY KEY"))
+        if needs_primary_key:
+            conn.execute(text("ALTER TABLE vbpl ADD PRIMARY KEY (id)"))
 
 
 ensure_vbpl_table_schema()
@@ -184,32 +199,37 @@ def html_to_text(content):
     return text or None
 
 
-def fetch_noidung_nextjs(doc_id):
+def fetch_noidung_from_api(doc_id):
+    api_url = build_gateway_url(doc_id)
+    api_response = SESSION.get(
+        api_url,
+        timeout=10,
+        headers={"Accept": "application/json, text/plain, */*"},
+    )
+
+    if api_response.status_code != 200:
+        return None, api_response.status_code
+
+    try:
+        api_payload = api_response.json()
+    except ValueError:
+        return None, api_response.status_code
+
+    content = html_to_text(extract_first_content(api_payload))
+    return content, api_response.status_code
+
+
+def fetch_detail_page(doc_id):
     detail_url = build_detail_url(doc_id)
     page_response = SESSION.get(detail_url, timeout=10)
-
 
     if page_response.status_code != 200:
         raise RuntimeError(f"detail page returned {page_response.status_code}")
 
-    api_url = build_gateway_url(doc_id)
-    api_response = SESSION.get(api_url, timeout=10, headers={"Accept": "application/json, text/plain, */*"})
+    return page_response
 
 
-    if api_response.status_code == 200:
-        try:
-            api_payload = api_response.json()
-        except ValueError:
-            api_payload = None
-
-        content = html_to_text(extract_first_content(api_payload))
-        if content:
-            print(f"[{doc_id}] source=api length={len(content)}")
-            print(content)
-            return content
-    else:
-        print(f"[{doc_id}] api status={api_response.status_code}, fallback=html")
-
+def extract_noidung_from_html(doc_id, page_response):
     soup = BeautifulSoup(page_response.text, "html.parser")
     fulltexts = soup.find_all("div", class_="fulltext")
     print("html fulltext count:", len(fulltexts))
@@ -221,10 +241,29 @@ def fetch_noidung_nextjs(doc_id):
             if not content:
                 raise RuntimeError(f"empty html content for document id {doc_id}")
             print(f"[{doc_id}] source=html length={len(content)}")
-            print(content)
             return content
 
     raise RuntimeError(f"Không có content với id {doc_id}")
+
+
+def fetch_noidung_nextjs(doc_id):
+    content, api_status = fetch_noidung_from_api(doc_id)
+    if content:
+        print(f"[{doc_id}] source=api length={len(content)}")
+        return content
+
+    if api_status not in (200, 403, 404):
+        raise RuntimeError(f"api returned {api_status}")
+
+    # Bootstrap session/cookies from the detail page before retrying the API.
+    page_response = fetch_detail_page(doc_id)
+    content, retry_status = fetch_noidung_from_api(doc_id)
+    if content:
+        print(f"[{doc_id}] source=api_after_bootstrap length={len(content)}")
+        return content
+
+    print(f"[{doc_id}] api status={api_status}, retry status={retry_status}, fallback=html")
+    return extract_noidung_from_html(doc_id, page_response)
 
 
 list_vb = [get_infor(df.iloc[i]["link_vbqppl"]) for i in range(len(df))]
@@ -239,7 +278,7 @@ print(len(df_vb))
 
 list_id = []
 list_noidung = []
-
+batch_size = 0
 for i in range(len(df_vb)):
     doc_id = str(df_vb.iloc[i][0])
     print(i, "Get data id", doc_id)
@@ -252,7 +291,8 @@ for i in range(len(df_vb)):
         print(f"Get data id {doc_id} failed: {e}")
         continue
 
-    if (i + 1) % 10 == 0:
+    batch_size += 1
+    if batch_size % 100 == 0:
         save_data(list_id, list_noidung)
         list_id.clear()
         list_noidung.clear()

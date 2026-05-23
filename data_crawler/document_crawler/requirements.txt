@@ -1,6 +1,6 @@
 pandas
 requests
-SQLAlchemy
+sqlalchemy
 bs4
 beautifulsoup4
 pymysql
