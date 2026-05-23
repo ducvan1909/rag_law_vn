@@ -73,6 +73,16 @@ for file in os.listdir(demuc_dir):
         with open(filepath, "r", encoding="utf_8") as demuc_file:
             demuc_html = demuc_file.read()
             demuc_html = BeautifulSoup(demuc_html, "html.parser")
+            anchor_by_name = {}
+            for anchor in demuc_html.find_all("a", attrs={"name": True}):
+                anchor_name = anchor.get("name")
+                if anchor_name is None:
+                    continue
+                if isinstance(anchor_name, list):
+                    if not anchor_name:
+                        continue
+                    anchor_name = anchor_name[0]
+                anchor_by_name[str(anchor_name)] = anchor
             demuc_node = tree_nodes_dict.get(filename.split(".")[0], [])
             demuc_chuong = [node for node in demuc_node if node["TEN"].startswith("Chương ")]
             demuc_dieu = [node for node in demuc_node if node["TEN"].startswith("Điều ")]
@@ -136,7 +146,10 @@ for file in os.listdir(demuc_dir):
                     print(f"Không tìm thấy đề mục cho điều {dieu['MAPC']}")
                     continue
 
-                dieu_html = demuc_html.select(f'a[name="{dieu["MAPC"]}"]')[0]
+                dieu_html = anchor_by_name.get(dieu["MAPC"])
+                if not dieu_html:
+                    print(f"KhÃ´ng tÃ¬m tháº¥y anchor cho Ä‘iá»u {dieu['MAPC']}")
+                    continue
                 ten = dieu_html.next_sibling
                 ghi_chu_html = dieu_html.parent.next_sibling
                 vbqppl = ghi_chu_html.text if ghi_chu_html else None
