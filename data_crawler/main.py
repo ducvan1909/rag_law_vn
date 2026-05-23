@@ -20,8 +20,8 @@ atexit.register(print_total_runtime)
 
 # Kết nối với database và tạo bảng
 db.connect(reuse_if_open=True)
-# db.drop_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
-# db.create_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
+db.drop_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
+db.create_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
 
 print("Load các chủ đề")
 with open("./phap-dien/chude.json", "r", encoding="utf_8") as f_chude:
@@ -72,7 +72,7 @@ for file in os.listdir(demuc_dir):
         filepath = os.path.join(demuc_dir, file)
         with open(filepath, "r", encoding="utf_8") as demuc_file:
             demuc_html = demuc_file.read()
-            demuc_html = BeautifulSoup(demuc_html, "lxml")
+            demuc_html = BeautifulSoup(demuc_html, "html.parser")
             demuc_node = tree_nodes_dict.get(filename.split(".")[0], [])
             demuc_chuong = [node for node in demuc_node if node["TEN"].startswith("Chương ")]
             demuc_dieu = [node for node in demuc_node if node["TEN"].startswith("Điều ")]
