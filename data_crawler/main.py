@@ -148,12 +148,13 @@ for file in os.listdir(demuc_dir):
 
                 dieu_html = anchor_by_name.get(dieu["MAPC"])
                 if not dieu_html:
-                    print(f"KhÃ´ng tÃ¬m tháº¥y anchor cho Ä‘iá»u {dieu['MAPC']}")
+                    print(f"Không tìm thấy anchor cho {dieu['MAPC']}")
                     continue
                 ten = dieu_html.next_sibling
                 ghi_chu_html = dieu_html.parent.next_sibling
                 vbqppl = ghi_chu_html.text if ghi_chu_html else None
                 vbqppl_link = ghi_chu_html.select("a")[0]["href"] if ghi_chu_html and ghi_chu_html.select("a") else None
+                vbqppl_id = extract_vbpl_document_id(vbqppl_link)
                 noidung_html = dieu_html.parent.find_next("p", {"class": "pNoiDung"})
                 noidung = ""
 
@@ -170,7 +171,7 @@ for file in os.listdir(demuc_dir):
                         noi_dung = noidung,
                         chi_muc =  dieu["ChiMuc"],
                         ten_vbqppl = vbqppl,
-                        link_vbqppl = vbqppl_link,
+                        id_vbqppl = vbqppl_id,
                         chuong_id = chuong_id,
                         demuc_id = dieu["DeMucID"],
                         chude_id = demuc_meta["ChuDe"]
