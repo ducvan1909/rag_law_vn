@@ -26,6 +26,8 @@ CONTENT_PROV_CLASSES = {
     "prov-paragraph",
 }
 
+STRUCTURAL_BREAK_PREFIXES = ("chương ", "mục ", "phần ")
+
 
 def prov_classes(node):
     return [cls for cls in (node.get("class") or []) if cls.startswith("prov-")]
@@ -193,6 +195,9 @@ def classify_node(node, text, has_prov_article):
     if classes:
         return "boundary"
 
+    if has_prov_article:
+        return "content"
+
     article_no, _ = extract_article_meta(text)
     if article_no:
         return "article"
@@ -281,11 +286,12 @@ def build_article_sections(html):
             }
             continue
 
-        if kind == "boundary":
-            if current_section is not None:
+        if current_section is not None and kind == "boundary":
+            normalized_text = normalize_whitespace(child_info["text"])
+            if normalized_text and normalized_text.casefold().startswith(STRUCTURAL_BREAK_PREFIXES):
                 sections.append(finalize_section(current_section))
                 current_section = None
-            continue
+                continue
 
         if current_section is not None:
             current_section["content_infos"].append(child_info)
