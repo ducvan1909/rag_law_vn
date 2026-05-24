@@ -32,7 +32,7 @@ class PDDieu(BaseModel):
     noi_dung = TextField()
     chi_muc = IntegerField()
     ten_vbqppl = TextField()
-    link_vbqppl = TextField(null=True)
+    id_vbqppl = CharField(max_length=32, null=True)
     chuong_id = ForeignKeyField(PDChuong, backref='dieus')
     demuc_id = ForeignKeyField(PDDeMuc, backref='dieus')
     chude_id = ForeignKeyField(PDChuDe, backref='dieus')
