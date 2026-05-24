@@ -1,11 +1,9 @@
 import os
-import re
-from urllib.parse import parse_qs, urlparse
 
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import URL
 from sqlalchemy.types import Text, String
 
@@ -45,100 +43,44 @@ engine = create_engine(url)
 
 
 def ensure_vbpl_table_schema():
-    inspector = inspect(engine)
-    if not inspector.has_table("vbpl"):
-        with engine.begin() as conn:
-            conn.execute(
-                text(
-                    """
-                    CREATE TABLE vbpl (
-                        id VARCHAR(32) NOT NULL,
-                        noidung LONGTEXT NULL,
-                        PRIMARY KEY (id)
-                    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
-                    """
-                )
-            )
-        return
-
-    columns = {column["name"]: column for column in inspector.get_columns("vbpl")}
-    pk_columns = inspector.get_pk_constraint("vbpl").get("constrained_columns") or []
-    needs_primary_key = pk_columns != ["id"]
-    id_is_nullable = columns.get("id", {}).get("nullable", True)
-
     with engine.begin() as conn:
-        if needs_primary_key or id_is_nullable:
-            # This job already rebuilds vbpl on every run, so truncate first to
-            # avoid migration failures caused by legacy NULL/duplicate ids.
-            conn.execute(text("TRUNCATE TABLE vbpl"))
-
-        conn.execute(text("ALTER TABLE vbpl MODIFY COLUMN id VARCHAR(32) NOT NULL"))
-        conn.execute(text("ALTER TABLE vbpl MODIFY COLUMN noidung LONGTEXT NULL"))
-        if pk_columns and pk_columns != ["id"]:
-            conn.execute(text("ALTER TABLE vbpl DROP PRIMARY KEY"))
-        if needs_primary_key:
-            conn.execute(text("ALTER TABLE vbpl ADD PRIMARY KEY (id)"))
+        conn.execute(text("DROP TABLE IF EXISTS vbpl"))
+        conn.execute(
+            text(
+                """
+                CREATE TABLE vbpl (
+                    id VARCHAR(32) NOT NULL,
+                    html LONGTEXT NULL,
+                    status_name VARCHAR(255) NULL,
+                    PRIMARY KEY (id)
+                ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
+                """
+            )
+        )
 
 
 ensure_vbpl_table_schema()
 
-
-def clear_vbpl_table():
-    with engine.begin() as conn:
-        conn.execute(text("TRUNCATE TABLE vbpl"))
-
-
-clear_vbpl_table()
-
 # Read source data from database
-df = pd.read_sql("SELECT link_vbqppl FROM pddieu GROUP BY link_vbqppl;", con=engine)
+df = pd.read_sql(
+    "SELECT id_vbqppl FROM pddieu WHERE id_vbqppl IS NOT NULL GROUP BY id_vbqppl;",
+    con=engine,
+)
 
 
-def get_infor(href):
-    if href is None:
-        return None
-
-    href = str(href).strip()
-    if not href:
-        return None
-
-    parsed = urlparse(href)
-    path = parsed.path.rstrip("/")
-
-    match = re.search(r"/van-ban/chi-tiet/(?:.*-)?(\d+)$", path)
-    if match:
-        return match.group(1)
-
-    match = re.search(r"ItemID=(\d+)", href)
-    if match:
-        return match.group(1)
-
-    query_item_id = parse_qs(parsed.query).get("ItemID")
-    if query_item_id and query_item_id[0].isdigit():
-        return query_item_id[0]
-
-    match = re.search(r"(\d+)(?:\?.*)?$", path)
-    if match:
-        return match.group(1)
-
-    print(f"Could not extract document id from link: {href}")
-    return None
-
-
-def save_data(list_id, list_noidung):
-    df_to_write = pd.DataFrame(
-        {
-            "id": list_id,
-            "noidung": list_noidung,
-        }
-    )
+def save_data(records):
+    df_to_write = pd.DataFrame(records)
     if not df_to_write.empty:
         df_to_write.to_sql(
             "vbpl",
             con=engine,
             if_exists="append",
             index=False,
-            dtype={"id": String(32), "noidung": Text()},
+            dtype={
+                "id": String(32),
+                "html": Text(),
+                "status_name": String(255),
+            },
         )
 
 
@@ -179,27 +121,41 @@ def extract_first_content(payload):
     return None
 
 
-def html_to_text(content):
+def normalize_html(content):
     if content is None:
         return None
 
     html = str(content).strip()
-    if not html:
-        return None
-
-    soup = BeautifulSoup(html, "html.parser")
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-
-    text = soup.get_text(separator="\n", strip=True)
-    text = re.sub(r"\n{3,}", "\n\n", text)
-    text = re.sub(r"[ \t]+\n", "\n", text)
-    text = re.sub(r"[ \t]{2,}", " ", text)
-    text = text.strip()
-    return text or None
+    return html or None
 
 
-def fetch_noidung_from_api(doc_id):
+def build_document_record(
+    doc_id,
+    html=None,
+    status_name=None,
+):
+    return {
+        "id": doc_id,
+        "html": normalize_html(html),
+        "status_name": status_name,
+    }
+
+
+def extract_document_record(doc_id, api_payload):
+    data = api_payload.get("data") if isinstance(api_payload, dict) else None
+    eff_status = data.get("effStatus") if isinstance(data, dict) else None
+
+    if not isinstance(eff_status, dict):
+        eff_status = {}
+
+    return build_document_record(
+        doc_id=doc_id,
+        html=extract_first_content(api_payload),
+        status_name=eff_status.get("name"),
+    )
+
+
+def fetch_document_from_api(doc_id):
     api_url = build_gateway_url(doc_id)
     api_response = SESSION.get(
         api_url,
@@ -215,8 +171,8 @@ def fetch_noidung_from_api(doc_id):
     except ValueError:
         return None, api_response.status_code
 
-    content = html_to_text(extract_first_content(api_payload))
-    return content, api_response.status_code
+    document_record = extract_document_record(doc_id, api_payload)
+    return document_record, api_response.status_code
 
 
 def fetch_detail_page(doc_id):
@@ -229,7 +185,7 @@ def fetch_detail_page(doc_id):
     return page_response
 
 
-def extract_noidung_from_html(doc_id, page_response):
+def extract_html_from_detail_page(doc_id, page_response):
     soup = BeautifulSoup(page_response.text, "html.parser")
     fulltexts = soup.find_all("div", class_="fulltext")
     print("html fulltext count:", len(fulltexts))
@@ -237,36 +193,38 @@ def extract_noidung_from_html(doc_id, page_response):
     if fulltexts:
         div_children = fulltexts[0].find_all("div")
         if len(div_children) > 1:
-            content = html_to_text(str(div_children[1]))
-            if not content:
+            html = normalize_html(str(div_children[1]))
+            if not html:
                 raise RuntimeError(f"empty html content for document id {doc_id}")
-            print(f"[{doc_id}] source=html length={len(content)}")
-            return content
+            print(f"[{doc_id}] source=html length={len(html)}")
+            return html
 
     raise RuntimeError(f"Không có content với id {doc_id}")
 
 
-def fetch_noidung_nextjs(doc_id):
-    content, api_status = fetch_noidung_from_api(doc_id)
-    if content:
-        print(f"[{doc_id}] source=api length={len(content)}")
-        return content
+def fetch_document_record_nextjs(doc_id):
+    document_record, api_status = fetch_document_from_api(doc_id)
+    if document_record and document_record["html"]:
+        print(f"[{doc_id}] source=api length={len(document_record['html'])}")
+        return document_record
 
     if api_status not in (200, 403, 404):
         raise RuntimeError(f"api returned {api_status}")
 
     # Bootstrap session/cookies from the detail page before retrying the API.
     page_response = fetch_detail_page(doc_id)
-    content, retry_status = fetch_noidung_from_api(doc_id)
-    if content:
-        print(f"[{doc_id}] source=api_after_bootstrap length={len(content)}")
-        return content
+    retry_record, retry_status = fetch_document_from_api(doc_id)
+    if retry_record and retry_record["html"]:
+        print(f"[{doc_id}] source=api_after_bootstrap length={len(retry_record['html'])}")
+        return retry_record
 
     print(f"[{doc_id}] api status={api_status}, retry status={retry_status}, fallback=html")
-    return extract_noidung_from_html(doc_id, page_response)
+    fallback_record = retry_record or document_record or build_document_record(doc_id)
+    fallback_record["html"] = extract_html_from_detail_page(doc_id, page_response)
+    return fallback_record
 
 
-list_vb = [get_infor(df.iloc[i]["link_vbqppl"]) for i in range(len(df))]
+list_vb = [str(df.iloc[i]["id_vbqppl"]).strip() for i in range(len(df))]
 
 print(len(df))
 
@@ -276,26 +234,17 @@ df_vb = df_vb.drop_duplicates()
 
 print(len(df_vb))
 
-list_id = []
-list_noidung = []
-batch_size = 0
+records = []
 for i in range(len(df_vb)):
     doc_id = str(df_vb.iloc[i][0])
     print(i, "Get data id", doc_id)
 
     try:
-        noidung = fetch_noidung_nextjs(doc_id)
-        list_id.append(doc_id)
-        list_noidung.append(str(noidung))
+        record = fetch_document_record_nextjs(doc_id)
+        records.append(record)
     except Exception as e:
         print(f"Get data id {doc_id} failed: {e}")
         continue
 
-    batch_size += 1
-    if batch_size % 100 == 0:
-        save_data(list_id, list_noidung)
-        list_id.clear()
-        list_noidung.clear()
 
-
-save_data(list_id, list_noidung)
+save_data(records)
