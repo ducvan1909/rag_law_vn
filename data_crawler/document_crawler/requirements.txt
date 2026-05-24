@@ -1,8 +1,0 @@
-pandas
-requests
-sqlalchemy
-bs4
-beautifulsoup4
-pymysql
-pandas-stubs
-peewee

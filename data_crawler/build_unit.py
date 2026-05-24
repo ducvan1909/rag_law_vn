@@ -14,7 +14,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 from db_config import db
-from db_models.mysql_model import PDChuDe, PDChuong, PDDeMuc, PDDieu
+from mysql_model import PDChuDe, PDChuong, PDDeMuc, PDDieu
 
 
 CONTENT_PROV_CLASSES = {

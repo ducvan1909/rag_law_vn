@@ -7,8 +7,7 @@ import atexit
 
 from collections import defaultdict
 from bs4 import BeautifulSoup
-from db_config import db
-from db_models.mysql_model import *
+from mysql_model import *
 from utils import *
 
 
