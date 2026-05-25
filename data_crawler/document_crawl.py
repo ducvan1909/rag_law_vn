@@ -1,11 +1,11 @@
 import os
 
-import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-from sqlalchemy import create_engine, text
-from sqlalchemy.engine import URL
-from sqlalchemy.types import Text, String
+from peewee import chunked
+
+from db_config import db
+from mysql_model import PDDieu, VBPL_TABLES, VBPL, reset_tables
 
 
 GATEWAY_BASE_URL = os.getenv(
@@ -28,60 +28,37 @@ SESSION.headers.update(
     }
 )
 
-
-# Create database connection
-url = URL.create(
-    drivername="mysql+pymysql",
-    username="root",
-    password="@12345@",
-    host="localhost",
-    port=2402,
-    database="law_db",
-)
-
-engine = create_engine(url)
-
-
 def ensure_vbpl_table_schema():
-    with engine.begin() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS vbpl"))
-        conn.execute(
-            text(
-                """
-                CREATE TABLE vbpl (
-                    id VARCHAR(32) NOT NULL,
-                    html LONGTEXT NULL,
-                    status_name VARCHAR(255) NULL,
-                    PRIMARY KEY (id)
-                ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci
-                """
-            )
-        )
+    reset_tables(VBPL_TABLES)
 
 
-ensure_vbpl_table_schema()
+def fetch_document_ids():
+    query = (
+        PDDieu.select(PDDieu.id_vbqppl)
+        .where(PDDieu.id_vbqppl.is_null(False))
+        .group_by(PDDieu.id_vbqppl)
+        .tuples()
+    )
+    document_ids = []
+    seen = set()
 
-# Read source data from database
-df = pd.read_sql(
-    "SELECT id_vbqppl FROM pddieu WHERE id_vbqppl IS NOT NULL GROUP BY id_vbqppl;",
-    con=engine,
-)
+    for (doc_id,) in query:
+        normalized_id = str(doc_id).strip()
+        if not normalized_id or normalized_id in seen:
+            continue
+        seen.add(normalized_id)
+        document_ids.append(normalized_id)
+
+    return document_ids
 
 
-def save_data(records):
-    df_to_write = pd.DataFrame(records)
-    if not df_to_write.empty:
-        df_to_write.to_sql(
-            "vbpl",
-            con=engine,
-            if_exists="append",
-            index=False,
-            dtype={
-                "id": String(32),
-                "html": Text(),
-                "status_name": String(255),
-            },
-        )
+def save_data(records, batch_size=200):
+    if not records:
+        return
+
+    with db.atomic():
+        for batch in chunked(records, batch_size):
+            VBPL.insert_many(list(batch)).execute()
 
 
 def build_detail_url(doc_id):
@@ -224,27 +201,38 @@ def fetch_document_record_nextjs(doc_id):
     return fallback_record
 
 
-list_vb = [str(df.iloc[i]["id_vbqppl"]).strip() for i in range(len(df))]
-
-print(len(df))
-
-df_vb = pd.DataFrame(list_vb)
-df_vb = df_vb.dropna()
-df_vb = df_vb.drop_duplicates()
-
-print(len(df_vb))
-
-records = []
-for i in range(len(df_vb)):
-    doc_id = str(df_vb.iloc[i][0])
-    print(i, "Get data id", doc_id)
-
+def main():
+    db.connect(reuse_if_open=True)
     try:
-        record = fetch_document_record_nextjs(doc_id)
-        records.append(record)
-    except Exception as e:
-        print(f"Get data id {doc_id} failed: {e}")
-        continue
+        ensure_vbpl_table_schema()
+        document_ids = fetch_document_ids()
+        print(f"documents to crawl: {len(document_ids)}")
+
+        records = []
+        inserted_count = 0
+        for index, doc_id in enumerate(document_ids):
+            print(index, "Get data id", doc_id)
+
+            try:
+                record = fetch_document_record_nextjs(doc_id)
+                records.append(record)
+            except Exception as e:
+                print(f"Get data id {doc_id} failed: {e}")
+                continue
+
+            if len(records) >= 200:
+                save_data(records)
+                inserted_count += len(records)
+                records.clear()
+
+        if records:
+            save_data(records)
+            inserted_count += len(records)
+
+        print(f"documents inserted: {inserted_count}")
+    finally:
+        db.close()
 
 
-save_data(records)
+if __name__ == "__main__":
+    main()

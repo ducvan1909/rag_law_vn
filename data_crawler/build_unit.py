@@ -6,6 +6,7 @@ from difflib import SequenceMatcher
 from pathlib import Path
 
 from bs4 import BeautifulSoup
+from peewee import chunked
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(ROOT_DIR) not in sys.path:
@@ -14,7 +15,17 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 from db_config import db
-from mysql_model import PDChuDe, PDChuong, PDDeMuc, PDDieu
+from mysql_model import (
+    PDChuDe,
+    PDChuong,
+    PDDeMuc,
+    PDDieu,
+    VBPL,
+    VBPLDocument,
+    VBPLUnit,
+    VBPL_UNIT_TABLES,
+    reset_tables,
+)
 
 
 CONTENT_PROV_CLASSES = {
@@ -34,41 +45,7 @@ def prov_classes(node):
 
 
 def ensure_output_tables():
-    with db.atomic():
-        db.execute_sql("DROP TABLE IF EXISTS vbpl_unit")
-        db.execute_sql("DROP TABLE IF EXISTS vbpl_document")
-        db.execute_sql(
-            """
-            CREATE TABLE vbpl_document (
-              id VARCHAR(32) NOT NULL,
-              plain_text LONGTEXT NULL,
-              status_name VARCHAR(255) NULL,
-              PRIMARY KEY (id)
-            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci
-            """
-        )
-        db.execute_sql(
-            """
-            CREATE TABLE vbpl_unit (
-              id BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
-              document_id VARCHAR(32) NOT NULL,
-              dieu_id VARCHAR(128) NOT NULL,
-              dieu VARCHAR(255) NOT NULL,
-              chuong VARCHAR(255) NOT NULL,
-              demuc VARCHAR(255) NOT NULL,
-              chude VARCHAR(255) NOT NULL,
-              ten_vbpl TEXT NOT NULL,
-              content LONGTEXT NOT NULL,
-              char_start INT NULL,
-              char_end INT NULL,
-              status_name VARCHAR(255) NULL,
-              KEY idx_vbpl_unit_document_id (document_id),
-              KEY idx_vbpl_unit_dieu_id (dieu_id),
-              CONSTRAINT fk_unit_document FOREIGN KEY (document_id) REFERENCES vbpl_document(id),
-              CONSTRAINT fk_unit_dieu FOREIGN KEY (dieu_id) REFERENCES pddieu(dieu_id)
-            ) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci
-            """
-        )
+    reset_tables(VBPL_UNIT_TABLES)
 
 
 def fetch_dieu_rows():
@@ -99,16 +76,17 @@ def fetch_vbpl_documents(document_ids, chunk_size=500):
 
     for start in range(0, len(sorted_ids), chunk_size):
         chunk = sorted_ids[start : start + chunk_size]
-        placeholders = ",".join(["%s"] * len(chunk))
-        cursor = db.execute_sql(
-            f"SELECT id, html, status_name FROM vbpl WHERE id IN ({placeholders})",
-            chunk,
+        query = (
+            VBPL.select(VBPL.id, VBPL.html, VBPL.status_name)
+            .where(VBPL.id.in_(chunk))
+            .dicts()
         )
-        for doc_id, html, status_name in cursor.fetchall():
-            documents[str(doc_id)] = {
-                "id": str(doc_id),
-                "html": html,
-                "status_name": status_name,
+        for row in query:
+            doc_id = str(row["id"])
+            documents[doc_id] = {
+                "id": doc_id,
+                "html": row["html"],
+                "status_name": row["status_name"],
             }
 
     return documents
@@ -403,40 +381,18 @@ def insert_document_rows(rows, batch_size=500):
     if not rows:
         return
 
-    query = """
-        INSERT INTO vbpl_document (id, plain_text, status_name)
-        VALUES (%s, %s, %s)
-    """
     with db.atomic():
-        cursor = db.connection().cursor()
-        for start in range(0, len(rows), batch_size):
-            cursor.executemany(query, rows[start : start + batch_size])
+        for batch in chunked(rows, batch_size):
+            VBPLDocument.insert_many(list(batch)).execute()
 
 
 def insert_unit_rows(rows, batch_size=500):
     if not rows:
         return
 
-    query = """
-        INSERT INTO vbpl_unit (
-            document_id,
-            dieu_id,
-            dieu,
-            chuong,
-            demuc,
-            chude,
-            ten_vbpl,
-            content,
-            char_start,
-            char_end,
-            status_name
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """
     with db.atomic():
-        cursor = db.connection().cursor()
-        for start in range(0, len(rows), batch_size):
-            cursor.executemany(query, rows[start : start + batch_size])
+        for batch in chunked(rows, batch_size):
+            VBPLUnit.insert_many(list(batch)).execute()
 
 
 def safe_string(value):
@@ -466,7 +422,13 @@ def main():
             continue
 
         plain_text, sections = build_article_sections(document.get("html"))
-        document_rows.append((document_id, plain_text, document.get("status_name")))
+        document_rows.append(
+            {
+                "id": document_id,
+                "plain_text": plain_text,
+                "status_name": document.get("status_name"),
+            }
+        )
 
         by_key, by_no, by_title = build_section_indexes(sections)
         matched_count = 0
@@ -477,19 +439,19 @@ def main():
                 continue
 
             unit_rows.append(
-                (
-                    document_id,
-                    safe_string(row["dieu_id"]),
-                    safe_string(row["dieu"])[:255],
-                    safe_string(row["chuong"])[:255],
-                    safe_string(row["demuc"])[:255],
-                    safe_string(row["chude"])[:255],
-                    safe_string(row["ten_vbpl"]),
-                    safe_string(matched_section["content_text"]),
-                    matched_section["char_start"],
-                    matched_section["char_end"],
-                    document.get("status_name"),
-                )
+                {
+                    "document_id": document_id,
+                    "dieu_id": safe_string(row["dieu_id"]),
+                    "dieu": safe_string(row["dieu"])[:255],
+                    "chuong": safe_string(row["chuong"])[:255],
+                    "demuc": safe_string(row["demuc"])[:255],
+                    "chude": safe_string(row["chude"])[:255],
+                    "ten_vbpl": safe_string(row["ten_vbpl"]),
+                    "content": safe_string(matched_section["content_text"]),
+                    "char_start": matched_section["char_start"],
+                    "char_end": matched_section["char_end"],
+                    "status_name": document.get("status_name"),
+                }
             )
             matched_count += 1
 

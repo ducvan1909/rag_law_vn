@@ -1,9 +1,6 @@
 peewee
 pymysql
-pandas
-pandas-stubs
 requests
-sqlalchemy
 bs4
 beautifulsoup4
 

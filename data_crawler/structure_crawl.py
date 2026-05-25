@@ -19,8 +19,7 @@ atexit.register(print_total_runtime)
 
 # Kết nối với database và tạo bảng
 db.connect(reuse_if_open=True)
-db.drop_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
-db.create_tables([PDChuDe, PDDeMuc, PDChuong, PDDieu, PDBang, PDFile, PDDieuLienQUan], safe=True)
+reset_tables(STRUCTURE_TABLES, drop_tables=STRUCTURE_TABLES + VBPL_UNIT_TABLES)
 
 print("Load các chủ đề")
 with open("./phap-dien/chude.json", "r", encoding="utf_8") as f_chude:

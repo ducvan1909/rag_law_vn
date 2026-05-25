@@ -4,6 +4,8 @@
 
 - Cào dữ liệu [Văn bản quy phạm pháp luật](https://vbpl.vn/) để lấy dữ liệu.
 
+
+
 ## Dữ liệu Pháp Điển 
 
 - Giải nén tệp zip tải xuống từ [Pháp Điển Việt Nam](https://phapdien.moj.gov.vn/Pages/home.aspx) vào data_crawler.
@@ -17,6 +19,12 @@ node toJson.js
 ```
 
 ## Xây dựng cấu trúc luật
+
+- Chạy MySQL và PHPMyAdmin containers từ docker-compose
+
+``` 
+docker-compose up -d
+```
 
 Chạy file structure_crawl.py
 
