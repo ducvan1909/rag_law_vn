@@ -26,7 +26,13 @@ node toJson.js
 docker-compose up -d
 ```
 
-Chạy file structure_crawl.py
+- Cài đặt các thư viện cần thiết
+
+```
+python structure_crawl.py
+```
+
+- Lấy cấu trúc các văn bản luật từ pháp điển
 
 ```
 python structure_crawl.py
@@ -34,13 +40,12 @@ python structure_crawl.py
 
 ## Lấy dữ liệu các văn bản pháp luật
 
-- Chạy file document_crawl.py
-
+- Cào dữ liệu html các văn bản luật
 ```
 python document_crawl.py
 ```
 
-- Chạy file build_unit.py
+- Chia các văn bản thành các điều
 
 ```
 python build_unit.py
