@@ -16,7 +16,7 @@
 node toJson.js
 ```
 
-## Xây dựng cấu trúc lật
+## Xây dựng cấu trúc luật
 
 Chạy file structure_crawl.py
 
