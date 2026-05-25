@@ -15,3 +15,25 @@
 ```
 node toJson.js
 ```
+
+## Xây dựng cấu trúc lật
+
+Chạy file structure_crawl.py
+
+```
+python structure_crawl.py
+```
+
+## Lấy dữ liệu các văn bản pháp luật
+
+- Chạy file document_crawl.py
+
+```
+python document_crawl.py
+```
+
+- Chạy file build_unit.py
+
+```
+python build_unit.py
+```
