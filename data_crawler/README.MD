@@ -26,12 +26,6 @@ node toJson.js
 
 ## Xây dựng cấu trúc luật
 
-- Chạy MySQL và PHPMyAdmin containers từ docker-compose
-
-``` 
-docker-compose up -d
-```
-
 - Cài đặt các thư viện cần thiết
 
 ```
