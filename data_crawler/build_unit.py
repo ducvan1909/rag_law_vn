@@ -14,8 +14,8 @@ if str(ROOT_DIR) not in sys.path:
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="backslashreplace")
 
-from db_config import db
-from mysql_model import (
+from database.db_config import db
+from database.mysql_model import (
     PDChuDe,
     PDChuong,
     PDDeMuc,

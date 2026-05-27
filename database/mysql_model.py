@@ -1,6 +1,6 @@
 from peewee import *
 
-from db_config import db
+from database.db_config import db
 
 MAX_LENGTH = 128
 UTF8MB4_UNICODE_TABLE_SETTINGS = (

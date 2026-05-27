@@ -4,8 +4,8 @@ import requests
 from bs4 import BeautifulSoup
 from peewee import chunked
 
-from db_config import db
-from mysql_model import PDDieu, VBPL_TABLES, VBPL, reset_tables
+from database.db_config import db
+from database.mysql_model import PDDieu, VBPL_TABLES, VBPL, reset_tables
 
 
 GATEWAY_BASE_URL = os.getenv(
