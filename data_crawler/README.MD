@@ -9,6 +9,12 @@
 ## Dữ liệu Pháp Điển 
 
 - Giải nén tệp zip tải xuống từ [Pháp Điển Việt Nam](https://phapdien.moj.gov.vn/Pages/home.aspx) vào data_crawler.
+- Vào thư mục data_crawler
+
+```
+cd data_crawler
+```
+
 - Chạy file toJson.js để tạo 3 file json từ jsonData.js:
     - chude.json: các chủ đề.
     - demuc.json: các đề mục.
@@ -45,7 +51,7 @@ python structure_crawl.py
 python document_crawl.py
 ```
 
-- Chia các văn bản thành các điều
+- Chia các văn bản thành các điều và lưu vào database
 
 ```
 python build_unit.py
