@@ -1,0 +1,6 @@
+chromadb
+peewee
+pymysql
+transformers
+torch
+sentence-transformers
