@@ -1,8 +1,14 @@
 import os
+from pathlib import Path
+import sys
 
 import requests
 from bs4 import BeautifulSoup
 from peewee import chunked
+
+ROOT_DIR = Path(__file__).resolve().parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.append(str(ROOT_DIR))
 
 from database.db_config import db
 from database.mysql_model import PDDieu, VBPL_TABLES, VBPL, reset_tables
