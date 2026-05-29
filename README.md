@@ -1,11 +1,3 @@
-1. Chạy các service từ docker-compose
+# RAG Law VN
 
-``` 
-docker-compose up -d
-```
-
-2. Crawl dữ liệu
-
-```
-cd data_crawler
-```
+Dự án xây dựng pipeline thu thập, chuẩn hóa, lưu trữ và lập chỉ mục dữ liệu văn bản pháp luật Việt Nam để phục vụ tra cứu và các bài toán RAG.
