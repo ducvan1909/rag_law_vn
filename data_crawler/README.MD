@@ -29,7 +29,7 @@ node toJson.js
 - Cài đặt các thư viện cần thiết
 
 ```
-python structure_crawl.py
+pip install -r requirements.txt
 ```
 
 - Lấy cấu trúc các văn bản luật từ pháp điển
