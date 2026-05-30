@@ -1,3 +1,16 @@
+# Shared Python dependencies for both CPU-only and CUDA-capable machines.
+# Keep torch generic here because pip cannot auto-detect the machine's CUDA
+# stack from a requirements file.
+#
+# CPU install:
+#   pip install -r rag/requirements.txt
+#
+# CUDA install:
+#   pip install -r rag/requirements.txt
+#   pip install --upgrade torch --index-url https://download.pytorch.org/whl/cu124
+#
+# If the target machine uses a different CUDA runtime, replace "cu124" with the
+# matching value from the official PyTorch install guide.
 chromadb
 peewee
 pymysql

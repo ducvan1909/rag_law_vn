@@ -20,9 +20,9 @@ collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embeds")
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
 chroma_port = int(os.getenv("CHROMA_PORT", "8001"))
 embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
+EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "128"))
 MAX_TOKENS = 500
 CHUNK_OVERLAP = 10
-BATCH_SIZE = 128
 
 def resolve_device(device_name):
     requested = (device_name or "auto").strip().lower()
@@ -74,14 +74,10 @@ def iter_data(limit=None):
     for row in query.iterator():
         yield row
 
-def get_tokens_length(tokenizer, corpus):
-    tokens = tokenizer.encode(corpus, add_special_tokens=False)
-    return len(tokens)
-
 def split_token_window(tokenizer, text, max_tokens=MAX_TOKENS, overlap_tokens=CHUNK_OVERLAP):
     token_ids = tokenizer.encode(text, add_special_tokens=False)
     if len(token_ids) <= max_tokens:
-        return [text]
+        return [(text, len(token_ids))]
 
     chunks = []
     start = 0
@@ -89,20 +85,21 @@ def split_token_window(tokenizer, text, max_tokens=MAX_TOKENS, overlap_tokens=CH
 
     while start < len(token_ids):
         end = min(start + max_tokens, len(token_ids))
+        chunk_token_ids = token_ids[start:end]
         chunk = tokenizer.decode(
-            token_ids[start:end],
+            chunk_token_ids,
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True,
         ).strip()
         if chunk:
-            chunks.append(chunk)
+            chunks.append((chunk, len(chunk_token_ids)))
         if end == len(token_ids):
             break
         start = end - step_back
 
     return chunks
 
-def build_metadata(unit, chunk_text, tokenizer):
+def build_metadata(unit, chunk_token_count):
     metadata = {
         "unit_id": unit["id"],
         "dieu": unit["dieu"],
@@ -111,7 +108,7 @@ def build_metadata(unit, chunk_text, tokenizer):
         "chude": unit["chude"],
         "ten_vbpl": unit["ten_vbpl"],
         "status_name": unit["status_name"],
-        "token_count": get_tokens_length(tokenizer, chunk_text)
+        "token_count": chunk_token_count,
     }
     return metadata
 
@@ -120,27 +117,28 @@ def index_units(embedding_model, units, collection):
     ids = []
     metadatas = []
     documents = []
-    index_units = 0
+    indexed_units = 0
+    indexed_chunks = 0
     for unit in units:
         chunks = split_token_window(tokenizer, unit["content"])
-        index_chunk = 0
-        for chunk in chunks:
-            metadatas.append(build_metadata(unit, chunk, tokenizer))
-            ids.append(f"Unit {index_units} - Chunk {index_chunk}")
+        for index_chunk, (chunk, chunk_token_count) in enumerate(chunks):
+            metadatas.append(build_metadata(unit, chunk_token_count))
+            ids.append(f"Unit {indexed_units} - Chunk {index_chunk}")
             documents.append(chunk)
-            index_chunk += 1
-        index_units += 1
-        if len(ids) >= BATCH_SIZE:
-            embeddings = embedding_model.encode(documents, batch_size=BATCH_SIZE)
-            upsert_batch(collection, ids, documents, embeddings, metadatas)
-            print(index_units)
-            ids = []
-            metadatas = []
-            documents = []
-    if len(ids) != 0:
-        embeddings = embedding_model.encode(documents, batch_size=BATCH_SIZE)
+            if len(ids) >= EMBED_BATCH_SIZE:
+                embeddings = embedding_model.encode(documents, batch_size=EMBED_BATCH_SIZE)
+                upsert_batch(collection, ids, documents, embeddings, metadatas)
+                indexed_chunks += len(ids)
+                print(f"indexed units: {indexed_units + 1}, indexed chunks: {indexed_chunks}")
+                ids = []
+                metadatas = []
+                documents = []
+        indexed_units += 1
+    if ids:
+        embeddings = embedding_model.encode(documents, batch_size=EMBED_BATCH_SIZE)
         upsert_batch(collection, ids, documents, embeddings, metadatas)
-        print(index_units)
+        indexed_chunks += len(ids)
+    print(f"indexed units: {indexed_units}, indexed chunks: {indexed_chunks}")
 
 def upsert_batch(collection, ids, documents, embeddings, metadatas):
     collection.upsert(
