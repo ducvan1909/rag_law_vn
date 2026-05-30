@@ -2,3 +2,4 @@
 *.htm linguist-vendored
 *.json linguist-vendored
 *.js linguist-vendored
+data_crawler/phap-dien/** linguist-vendored
