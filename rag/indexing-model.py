@@ -13,8 +13,8 @@ from database.db_config import db
 from database.mysql_model import VBPLUnit
 
 
-DEFAULT_MODEL_NAME = "truro7/vn-law-embedding"
-DEFAULT_COLLECTION_NAME = "vbpl_units"
+DEFAULT_MODEL_NAME = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
+DEFAULT_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION", "vbpl_units")
 DEFAULT_CHROMA_HOST = os.getenv("CHROMA_HOST", "localhost")
 DEFAULT_CHROMA_PORT = int(os.getenv("CHROMA_PORT", "8001"))
 DEFAULT_MAX_TOKENS = 600

@@ -1,5 +1,6 @@
 peewee
 pymysql
+python-dotenv
 requests
 bs4
 beautifulsoup4

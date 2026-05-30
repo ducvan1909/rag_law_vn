@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from database.db_config import db
@@ -7,9 +6,7 @@ from database.mysql_model import VBPLUnit
 
 MAX_TOKENS = 700
 
-load_dotenv()
-
-model_name = os.getenv("EMBEDDING_MODEL")
+model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
 hf_token = os.getenv("HF_TOKEN")
 
 embedding_model = SentenceTransformer(model_name, token=hf_token)

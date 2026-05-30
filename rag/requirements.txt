@@ -1,6 +1,7 @@
 chromadb
 peewee
 pymysql
+python-dotenv
 transformers
 torch
 sentence-transformers
