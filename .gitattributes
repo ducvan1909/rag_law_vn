@@ -1,3 +1,4 @@
 *.html linguist-vendored
 *.htm linguist-vendored
 *.json linguist-vendored
+*.js linguist-vendored
