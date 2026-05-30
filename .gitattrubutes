@@ -1,0 +1,5 @@
+data_crawler/**/*.html linguist-vendored
+data_crawler/**/*.htm linguist-vendored
+data_crawler/**/*.json linguist-vendored
+data_crawler/**/*.csv linguist-vendored
+database/**/*.sql linguist-vendored
