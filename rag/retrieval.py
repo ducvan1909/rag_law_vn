@@ -1,86 +1,27 @@
 import chromadb
 import os
-import re
-from pathlib import Path
-
-import numpy as np
-from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
-
-ROOT_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT_DIR / ".env")
+from indexing import resolve_device
 
 model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
 hf_token = os.getenv("HF_TOKEN")
 embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
-collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embed")
+collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embeds")
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
 chroma_port = int(os.getenv("CHROMA_PORT", "8001"))
-embedding_model = SentenceTransformer(model_name)
-chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
-collection = chroma_client.get_collection(collection_name)
-
-PASSAGE_BOUNDARY_PATTERN = re.compile(r"(?<=[.!?;])\s+|\n+")
 
 
-def retrieve(query, embedding_model=embedding_model, collection=collection, n_results=5):
+
+def retrieve(query, embedding_model, collection, n_results=5):
     query_embeddings = embedding_model.encode(query)
-    res = collection.query(query_embeddings=query_embeddings, n_results=n_results)
-    res = rerank(res)
+    res = collection.query(query_embeddings=query_embeddings, n_results=5)
     return res
 
-def rerank(results):
-    #Rerank .......
-    return results
-
-
-def extract(query, results, embedding_model=embedding_model, passages_per_document=2, context_window=1):
-    """Keep only the most relevant passages and their neighbors in each retrieved chunk."""
-    if passages_per_document < 1:
-        raise ValueError("passages_per_document must be greater than 0")
-    if context_window < 0:
-        raise ValueError("context_window must be greater than or equal to 0")
-
-    document_batches = results.get("documents")
-    if not query.strip() or not document_batches:
-        return results
-
-    compressed_batches = []
-    for documents in document_batches:
-        compressed_documents = []
-        for document in documents:
-            passages = [
-                passage.strip()
-                for passage in PASSAGE_BOUNDARY_PATTERN.split(document)
-                if passage.strip()
-            ]
-            if len(passages) <= passages_per_document:
-                compressed_documents.append(document)
-                continue
-
-            embeddings = embedding_model.encode(
-                [query, *passages],
-                normalize_embeddings=True,
-            )
-            query_embedding = np.asarray(embeddings[0])
-            passage_embeddings = np.asarray(embeddings[1:])
-            scores = passage_embeddings @ query_embedding
-            top_indexes = np.argsort(scores)[-passages_per_document:]
-
-            selected_indexes = set()
-            for index in top_indexes:
-                start = max(0, index - context_window)
-                end = min(len(passages), index + context_window + 1)
-                selected_indexes.update(range(start, end))
-
-            compressed_documents.append(
-                " ".join(passages[index] for index in sorted(selected_indexes))
-            )
-        compressed_batches.append(compressed_documents)
-
-    compressed_results = dict(results)
-    compressed_results["documents"] = compressed_batches
-    return compressed_results
-
 if __name__ == "__main__":
-    print(retrieve(query="tổ chức sử dụng ma túy"))
+    embedding_model = SentenceTransformer(model_name)
+    chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
+    collection = chroma_client.get_collection(collection_name)
+
+    results = retrieve(["dân sự"], embedding_model, collection)
+    for result in results["documents"][0]:
+        print(result)
