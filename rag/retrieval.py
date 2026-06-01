@@ -1,167 +1,27 @@
-import os
-import re
-import time
-from pathlib import Path
-
-from dotenv import load_dotenv
-
-import numpy as np
-
-import torch
-from sentence_transformers import SentenceTransformer
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import chromadb
+import os
+from sentence_transformers import SentenceTransformer
+from indexing import resolve_device
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(ROOT_DIR / ".env")
-
-embedding_model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
-embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
+model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
 hf_token = os.getenv("HF_TOKEN")
-rerank_model_name = os.getenv("RERANK_MODEL")
-rerank_device = torch.device("cpu")
-MAX_LENGTH = 700
-
+embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
+collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embeds")
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
 chroma_port = int(os.getenv("CHROMA_PORT", "8001"))
 
-collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embed")
 
 
-PASSAGE_BOUNDARY_PATTERN = re.compile(r"(?<=[.!?;])\s+|\n+")
-
-
-class RetrievalResources:
-    def __init__(self):
-        self.embedding_model = SentenceTransformer(embedding_model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(rerank_model_name)
-        self.rerank_model = (
-            AutoModelForSequenceClassification.from_pretrained(rerank_model_name)
-        )
-        self.rerank_model.to(rerank_device)
-        self.rerank_model.eval()
-
-        chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
-        self.collection = chroma_client.get_collection(collection_name)
-
-def load_retrieval_resources():
-    return RetrievalResources()
-
-#Chuyển kết quả truy vấn ChromaDB từ dict chứa các list sang list chứa các dict để tiện xử lý
-def chroma_results_to_list(results, batch_index=0):
-    rows = []
-    documents = results.get("documents", [[]])[batch_index]
-
-    for i in range(len(documents)):
-        row = {
-            "index": i,
-            "id": results.get("ids", [[]])[batch_index][i],
-            "document": results.get("documents", [[]])[batch_index][i],
-            "metadata": results.get("metadatas", [[]])[batch_index][i],
-        }
-
-        if "distances" in results and results["distances"]:
-            row["distance"] = results["distances"][batch_index][i]
-
-        rows.append(row)
-
-    return rows
-
-def retrieve(query, resources, n_results=5, timings=None):
-    embedding_started_at = time.perf_counter()
-    query_embeddings = resources.embedding_model.encode(query)
-    embedding_finished_at = time.perf_counter()
-
-    #Retrieve raw result from chromadb
-    raw_results = resources.collection.query(
-        query_embeddings=query_embeddings,
-        n_results=n_results * 4,
-    )
-    chroma_finished_at = time.perf_counter()
-
-    raw_results = chroma_results_to_list(raw_results, batch_index=0)
-
-    rerank_started_at = time.perf_counter()
-    reranked_results = rerank(
-        query,
-        raw_results,
-        resources.tokenizer,
-        resources.rerank_model,
-    )
-    rerank_finished_at = time.perf_counter()
-
-    #Đếm thời gian embed, truy vấn chromadb và rerank
-    if timings is not None:
-        timings.update(
-            {
-                "embedding_ms": round(
-                    (embedding_finished_at - embedding_started_at) * 1000,
-                    2,
-                ),
-                "chroma_ms": round(
-                    (chroma_finished_at - embedding_finished_at) * 1000,
-                    2,
-                ),
-                "rerank_ms": round(
-                    (rerank_finished_at - rerank_started_at) * 1000,
-                    2,
-                ),
-                "retrieval_ms": round(
-                    (rerank_finished_at - embedding_started_at) * 1000,
-                    2,
-                ),
-                "candidate_count": len(raw_results),
-                "result_count": min(n_results, len(reranked_results)),
-            }
-        )
-
-    return reranked_results[:n_results]
-
-
-#Rerank các kết quả truy vấn từ chromadb
-def rerank(query, results, tokenizer, rerank_model, batch_size=4):
-    if not results:
-        return results
-    if batch_size <= 0:
-        raise ValueError("Invalid batch size")
-
-    with torch.no_grad():
-        scores = []
-        for start in range(0, len(results), batch_size):
-            pairs = [
-                [query, result["document"]]
-                for result in results[start:start + batch_size]
-            ]
-            inputs = tokenizer(
-                pairs,
-                padding=True,
-                truncation="only_second",
-                return_tensors="pt",
-                max_length=MAX_LENGTH,
-            )
-            inputs = {
-                key: value.to(rerank_device)
-                for key, value in inputs.items()
-            }
-            batch_scores = rerank_model(
-                **inputs,
-                return_dict=True,
-            ).logits.view(-1).float().tolist()
-            scores.extend(batch_scores)
-
-    for result, score in zip(results, scores):
-        result["rerank_score"] = score
-
-    return sorted(results, key=lambda result: result["rerank_score"], reverse=True)
+def retrieve(query, embedding_model, collection, n_results=5):
+    query_embeddings = embedding_model.encode(query)
+    res = collection.query(query_embeddings=query_embeddings, n_results=5)
+    return res
 
 if __name__ == "__main__":
-    resources = RetrievalResources()
-    query = ""
-    while query != "exit":
-        query = input("Enter query: ")
-        if query == "exit":
-            break
-        results = retrieve(query, resources=resources, n_results=5)
-        for result in results:
-            print(result["document"])
-            print("___________________")
+    embedding_model = SentenceTransformer(model_name)
+    chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
+    collection = chroma_client.get_collection(collection_name)
+
+    results = retrieve(["dân sự"], embedding_model, collection)
+    for result in results["documents"][0]:
+        print(result)
