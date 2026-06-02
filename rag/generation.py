@@ -5,6 +5,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+from retrieval import retrieve
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
@@ -56,14 +58,11 @@ DEFAULT_TEMPERATURE = float(os.getenv("GENERATION_TEMPERATURE", "0.1"))
 DEFAULT_TOP_P = float(os.getenv("GENERATION_TOP_P", "0.95"))
 DEFAULT_TOP_K = int(os.getenv("GENERATION_TOP_K", "40"))
 
-SYSTEM_PROMPT = (
-    "Bạn là trợ lý pháp luật Việt Nam. "
-    "Chỉ trả lời dựa trên dữ liệu được cung cấp. "
-    "Nếu dữ liệu không đủ để trả lời chính xác, hãy nói rõ rằng bạn không biết."
-)
+SYSTEM_PROMPT = """Trả lời ngắn gọn chỉ dựa trên nguồn.
+                Mỗi ý phải kết thúc bằng ít nhất một mã nguồn, ví dụ: [S1]."""
 
 
-def load_generation_model(model_repo, model_filename, hf_token=None):
+def load_generation_model(model_repo=DEFAULT_MODEL_REPO, model_filename=DEFAULT_MODEL_FILENAME, hf_token=DEFAULT_HF_TOKEN):
     if hf_token:
         # huggingface-hub reads HF_TOKEN from the environment inside from_pretrained().
         os.environ["HF_TOKEN"] = hf_token
@@ -79,10 +78,15 @@ def load_generation_model(model_repo, model_filename, hf_token=None):
     )
 
 
-def generate_answer(model, question, max_new_tokens, temperature, top_p, top_k):
-    instruction = f"{SYSTEM_PROMPT}\n\n{question}"
+def generate_answer(model, query, max_new_tokens=DEFAULT_MAX_NEW_TOKENS, temperature=DEFAULT_TEMPERATURE, top_p=DEFAULT_TOP_P, top_k=DEFAULT_TOP_K):
+    print("Retrieving...")
+    context, source = build_context(query)
+    print("Building prompt...")
+    prompt = build_prompt(query, context)
+    print(prompt)
+    print("Generating answer...")
     response = model.create_completion(
-        prompt=f"### Câu hỏi: {instruction}\n### Trả lời:",
+        prompt=f"### Câu hỏi: {prompt}\n### Trả lời:",
         temperature=temperature,
         top_p=top_p,
         top_k=top_k,
@@ -92,22 +96,60 @@ def generate_answer(model, question, max_new_tokens, temperature, top_p, top_k):
     )
     return response["choices"][0]["text"].strip()
 
+def build_context(query):
+    results = retrieve(query, n_results=3)
+    sources = []
+    documents = results["documents"][0]
+    metadatas = results["metadatas"][0]
+
+    for index in range(len(documents)):
+        sources.append({
+            "id": f"[### S{index + 1}]",
+            "document": documents[index],
+            "metadata": metadatas[index],
+            "dieu": metadatas[index]["dieu"]
+        })
+
+    context = "\n\n".join(
+        f"[{source['id']}]\n"
+        f"Văn bản: {source['metadata']['ten_vbpl']}\n"
+        f"Điều: {source['dieu']}\n"
+        f"Nội dung: {source['document']}"
+        for source in sources
+    )
+    return context, sources
+
+def build_prompt(query, context):
+    prompt = f"""
+        {query}
+        ### Yêu cầu: {SYSTEM_PROMPT}
+        ### Nguồn: {context}
+    """
+    return prompt
+
+
+def run_interactive(model):
+    print("\nModel đã sẵn sàng. Nhập câu hỏi mới hoặc gõ 'exit' để thoát.")
+    while True:
+        try:
+            query = input("\nCâu hỏi: ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print("\nĐã thoát.")
+            return
+
+        if query.lower() in {"exit", "quit", "q"}:
+            print("Đã thoát.")
+            return
+        if not query:
+            continue
+
+        answer = generate_answer(model=model, query=query)
+        print(f"\nTrả lời:\n{answer}")
+
 
 def main():
-    model = load_generation_model(
-        model_repo=DEFAULT_MODEL_REPO,
-        model_filename=DEFAULT_MODEL_FILENAME,
-        hf_token=DEFAULT_HF_TOKEN,
-    )
-    answer = generate_answer(
-        model=model,
-        question=DEFAULT_QUESTION,
-        max_new_tokens=DEFAULT_MAX_NEW_TOKENS,
-        temperature=DEFAULT_TEMPERATURE,
-        top_p=DEFAULT_TOP_P,
-        top_k=DEFAULT_TOP_K,
-    )
-    print(answer)
+    model = load_generation_model()
+    run_interactive(model)
 
 
 if __name__ == "__main__":
