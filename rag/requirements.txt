@@ -16,7 +16,7 @@
 # matching value from the official PyTorch install guide.
 chromadb
 huggingface-hub
-
+llama-cpp-python
 peewee
 pymysql
 python-dotenv
