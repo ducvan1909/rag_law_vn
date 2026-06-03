@@ -4,8 +4,12 @@ Frontend React + TypeScript tối giản cho `RAG Law VN`.
 
 Lưu ý: repo này hiện đang cấu hình để chạy với Node `v19.x`. Nếu muốn dùng Vite 7 trở lên, hãy nâng Node lên `20.19+` hoặc `22.12+`.
 
-## Chạy local
 
+## Backend chat API
+```bash
+python ../api_server.py
+```
+## Chạy local
 ```bash
 cd web
 npm install
@@ -19,3 +23,14 @@ npm run dev
 ```env
 VITE_CHAT_API_URL=http://localhost:8000/chat
 ```
+
+
+
+
+
+
+
+Endpoint:
+
+- `POST /chat` voi JSON `{ "question": "..." }`
+- `GET /health` de kiem tra server

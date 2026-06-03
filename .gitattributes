@@ -3,3 +3,4 @@
 *.json linguist-vendored
 *.js linguist-vendored
 data_crawler/phap-dien/** linguist-vendored
+rag/vbpl_embed.jsonl.gz filter=lfs diff=lfs merge=lfs -text

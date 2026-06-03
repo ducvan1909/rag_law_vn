@@ -21,3 +21,20 @@ Nếu đã có backend nhận câu hỏi, cấu hình biến môi trường:
 ```env
 VITE_CHAT_API_URL=http://localhost:8000/chat
 ```
+
+## Backend chat API
+
+Da co san backend `/chat` de noi frontend vao model AI trong `rag/generation.py`.
+
+Chay local:
+
+```bash
+python api_server.py
+```
+
+Mac dinh:
+
+- `GET /health` tra ve trang thai server
+- `POST /chat` nhan JSON `{ "question": "..." }` va tra ve `{ "answer": "..." }`
+- `CHAT_API_PORT=8000`
+- `CHAT_API_HOST=0.0.0.0`
