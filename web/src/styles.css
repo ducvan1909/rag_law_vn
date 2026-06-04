@@ -294,6 +294,15 @@ h1 {
   cursor: pointer;
 }
 
+.history-panel__back {
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--button-bg);
+  color: var(--text);
+  cursor: pointer;
+}
+
 .history-panel__clear {
   padding: 10px 14px;
   border: 1px solid var(--border);
@@ -316,6 +325,54 @@ h1 {
   padding-right: 4px;
 }
 
+.history-conversation {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bubble-bg);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-conversation:hover {
+  opacity: 0.92;
+}
+
+.history-conversation__top {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 8px;
+}
+
+.history-conversation__title {
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.history-conversation__time {
+  color: var(--muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.history-conversation__meta {
+  color: var(--muted);
+  font-size: 0.78rem;
+  margin-bottom: 8px;
+}
+
+.history-conversation__preview {
+  margin: 0;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .history-panel__more {
   width: 100%;
   padding: 12px 14px;
@@ -333,6 +390,61 @@ h1 {
 .history-panel__empty {
   margin: 0;
   color: var(--muted);
+}
+
+.history-detail {
+  display: grid;
+  gap: 12px;
+}
+
+.history-detail__meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 12px;
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.history-detail__messages {
+  display: grid;
+  gap: 12px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.history-detail__message {
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bubble-bg);
+}
+
+.history-detail__message-role {
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.history-detail__message-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+}
+
+.history-detail__message--user {
+  background: color-mix(in srgb, var(--bubble-bg) 84%, var(--text) 16%);
+}
+
+.history-detail__message--assistant {
+  background: color-mix(in srgb, var(--bubble-bg) 92%, var(--bg) 8%);
+}
+
+.history-detail__message--system {
+  background: color-mix(in srgb, var(--bubble-bg) 88%, var(--border) 12%);
 }
 
 .history-item {
@@ -423,7 +535,10 @@ h1 {
     flex-wrap: wrap;
   }
 
-  .messages {
+  .history-panel__back,
+  .history-panel__clear,
+  .history-panel__close {
+    padding: 9px 12px;
   }
 
   .composer {

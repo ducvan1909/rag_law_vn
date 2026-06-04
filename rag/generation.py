@@ -31,7 +31,7 @@ DEFAULT_FREQUENCY_PENALTY = float(os.getenv("GENERATION_FREQUENCY_PENALTY", "0")
 SYSTEM_PROMPT = """
 Trả lời ngắn gọn và trực tiếp
 Không suy diễn hoặc bổ sung ngoại lệ
-Nếu nguồn không đủ thông tin, trả lời: Không đủ thông tin để trả lời.
+Nếu nguồn không đủ thông tin, trả lời: Bố chịu.
 Nếu có đủ thông tin thì mỗi câu phải kết thúc bằng ít nhất một mã nguồn theo đúng dạng [S1].
 Chỉ trả lời dựa trên thông tin nằm trong nguồn.
 """
