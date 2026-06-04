@@ -1,4 +1,11 @@
-import { FormEvent, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  FormEvent,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 type MessageRole = "assistant" | "system" | "user";
 
@@ -27,7 +34,7 @@ const CURRENT_CONVERSATION_KEY = "rag-law-vn.current-conversation";
 const SAVED_CONVERSATIONS_KEY = "rag-law-vn.saved-conversations";
 const LEGACY_HISTORY_KEY = "rag-law-vn.chat-history";
 const HISTORY_BATCH_SIZE = 100;
-const DEFAULT_CONVERSATION_TITLE = "Cuộc hội thoại mới";
+const DEFAULT_CONVERSATION_TITLE = "Cuoc hoi thoai moi";
 
 function createId() {
   return `conv-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -54,7 +61,7 @@ function buildConversationTitle(messages: Message[]) {
     return compact;
   }
 
-  return `${compact.slice(0, 36).trimEnd()}…`;
+  return `${compact.slice(0, 36).trimEnd()}...`;
 }
 
 function isMessage(value: unknown): value is Message {
@@ -152,14 +159,6 @@ function loadSavedConversations() {
   return [];
 }
 
-function formatMessageTime(id: number) {
-  if (id < 1_000_000_000_000) {
-    return "";
-  }
-
-  return new Date(id).toLocaleString("vi-VN");
-}
-
 function formatConversationTime(updatedAt: number) {
   return new Date(updatedAt).toLocaleString("vi-VN");
 }
@@ -167,11 +166,11 @@ function formatConversationTime(updatedAt: number) {
 function getConversationPreview(conversation: Conversation) {
   const lastMessage = conversation.messages[conversation.messages.length - 1];
   if (!lastMessage) {
-    return "Chưa có tin nhắn.";
+    return "Chua co tin nhan.";
   }
 
   const compact = lastMessage.text.replace(/\s+/g, " ").trim();
-  return compact.length <= 80 ? compact : `${compact.slice(0, 80).trimEnd()}…`;
+  return compact.length <= 80 ? compact : `${compact.slice(0, 80).trimEnd()}...`;
 }
 
 async function sendQuestion(question: string) {
@@ -179,7 +178,7 @@ async function sendQuestion(question: string) {
 
   if (!apiUrl) {
     return {
-      text: "Chưa cấu hình API. Hãy đặt biến môi trường VITE_CHAT_API_URL để nối backend.",
+      text: "Chua cau hinh API. Hay dat bien moi truong VITE_CHAT_API_URL de noi backend.",
       role: "system" as const,
     };
   }
@@ -201,10 +200,7 @@ async function sendQuestion(question: string) {
     | null;
 
   return {
-    text:
-      data?.answer ??
-      data?.message ??
-      "Không nhận được câu trả lời từ API.",
+    text: data?.answer ?? data?.message ?? "Khong nhan duoc cau tra loi tu API.",
     role: "assistant" as const,
   };
 }
@@ -221,6 +217,8 @@ export default function App() {
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isStarOpen, setIsStarOpen] = useState(false);
   const [historyVisibleCount, setHistoryVisibleCount] = useState(HISTORY_BATCH_SIZE);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -358,7 +356,7 @@ export default function App() {
       const errorMessage: Message = {
         id: Date.now() + 1,
         role: "system",
-        text: "Không thể gửi câu hỏi. Kiểm tra lại API hoặc kết nối mạng.",
+        text: "Khong the gui cau hoi. Kiem tra lai API hoac ket noi mang.",
       };
 
       setCurrentConversation((current) => ({
@@ -371,23 +369,47 @@ export default function App() {
     }
   }
 
-  return (
-    <main className="shell">
-      <button
-        type="button"
-        className="theme-toggle"
-        onClick={() => setIsDarkMode((current) => !current)}
-        aria-pressed={isDarkMode}
-        aria-label="Bật hoặc tắt dark mode"
-      >
-        {isDarkMode ? "Light mode" : "Dảk mode"}  {/* không sửa dòng này */}
-      </button>
+    return (
+      <main className="shell">
+        <aside className="left-rail" aria-label="Thanh cong cu">
+          <button
+            type="button"
+            className="rail-button rail-button--theme"
+            onClick={() => setIsDarkMode((current) => !current)}
+            aria-pressed={isDarkMode}
+            aria-label="Bat hoac tat dark mode"
+          >
+            <span className="rail-button__label">{isDarkMode ? "Light" : "Dảk"}</span>
+          </button>
+          <div className="rail-bottom-actions">
+            <button
+              type="button"
+              className="rail-button rail-button--star"
+              onClick={() => setIsStarOpen(true)}
+              aria-controls="star-panel"
+              aria-expanded={isStarOpen}
+              aria-label="Mo cua so sao"
+            >
+              <span className="rail-button__label">✡️</span>
+            </button>
+            <button
+              type="button"
+              className="rail-button rail-button--info"
+              onClick={() => setIsInfoOpen(true)}
+              aria-controls="info-panel"
+              aria-expanded={isInfoOpen}
+              aria-label="Mo thong tin"
+            >
+              <span className="rail-button__label">ⓘ</span>
+            </button>
+          </div>
+        </aside>
+
       <section className="hero">
         <div className="hero__copy">
           <p className="eyebrow">RAG Law VN</p>
           <h1>Giải đáp thắc mắc pháp luật cùng AI</h1>
-          <p className="subtitle">ửok in process.</p>  {/* không sửa dòng này */}
-
+          <p className="subtitle">Ửok In Process.</p>
         </div>
 
         <div className="chat-stack">
@@ -396,7 +418,7 @@ export default function App() {
               ref={messagesRef}
               className="messages"
               aria-live="polite"
-              aria-label="Lịch sử chat"
+              aria-label="Lich su chat"
             >
               {currentConversation.messages.map((message) => (
                 <article key={message.id} className={`bubble bubble--${message.role}`}>
@@ -412,7 +434,7 @@ export default function App() {
                 value={input}
                 onChange={(event) => setInput(event.target.value)}
                 placeholder="Nhập câu hỏi cho AI..."
-                aria-label="Nhập câu hỏi cho AI"
+                aria-label="Nhap cau hoi cho AI"
               />
               <button className="composer__button" type="submit" disabled={!canSend}>
                 {isSending ? "Đang gửi..." : "Gửi"}
@@ -472,7 +494,7 @@ export default function App() {
                     className="history-panel__back"
                     onClick={backToConversationList}
                   >
-                    Quay lại
+                    Quay lai
                   </button>
                 ) : (
                   <button
@@ -494,14 +516,14 @@ export default function App() {
               </div>
             </div>
 
-            <div className="history-panel__list" aria-label="Danh sách cuộc hội thoại">
+            <div className="history-panel__list" aria-label="Danh sach cuoc hoi thoai">
               {selectedHistoryConversation ? (
                 <div className="history-detail">
                   <div className="history-detail__meta">
                     <span>{selectedHistoryConversation.messages.length} tin nhắn</span>
                     <span>{formatConversationTime(selectedHistoryConversation.updatedAt)}</span>
                   </div>
-                  <div className="history-detail__messages" aria-label="Nội dung cuộc hội thoại">
+                  <div className="history-detail__messages" aria-label="Noi dung cuoc hoi thoai">
                     {selectedHistoryConversation.messages.map((message) => (
                       <article
                         key={`${selectedHistoryConversation.id}-${message.id}`}
@@ -556,6 +578,90 @@ export default function App() {
                   ) : null}
                 </>
               )}
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {isInfoOpen ? (
+        <div
+          className="history-backdrop"
+          role="presentation"
+          onClick={() => setIsInfoOpen(false)}
+        >
+          <aside
+            id="info-panel"
+            className="history-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="info-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="history-panel__header">
+              <div>
+                <h2 id="info-title">Thông tin</h2>
+              </div>
+              <div className="history-panel__actions">
+                <button
+                  type="button"
+                  className="history-panel__close"
+                  onClick={() => setIsInfoOpen(false)}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+
+            <div className="history-panel__list" aria-label="Thông tin">
+              <p>Nếu một buổi sáng thấy thân đã mòn</p> 
+              <p>Mặt cô trốn sau làn phấn son</p>
+              <p>Lặng nhìn trong gương thất thần</p>
+              <p>Nhìn dung nhan mất dần</p>
+              <p>Nhưng thật tình đâu mấy bất ngờ</p>
+              <br></br>
+              <p>Nếu lời cô nói đã vương tơ nhện</p>
+              <p>Bài cô hát đi vào lãng quên</p>
+              <p>Và cô đã sống hết đời</p>
+              <p>Một bài ca hết lời</p>
+              <p>Một ca sĩ hết thời</p>
+             
+
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {isStarOpen ? (
+        <div
+          className="history-backdrop"
+          role="presentation"
+          onClick={() => setIsStarOpen(false)}
+        >
+          <aside
+            id="star-panel"
+            className="history-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="star-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="history-panel__header">
+              <div>
+                <h2 id="star-title">Khều Donate</h2>
+              </div>
+              <div className="history-panel__actions">
+                <button
+                  type="button"
+                  className="history-panel__close"
+                  onClick={() => setIsStarOpen(false)}
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+
+            <div className="history-panel__list history-panel__list--center" aria-label="Thong tin">
+                <img src={('../src/Rickrolling_QR_code.png')} alt="Donate QR" />
             </div>
           </aside>
         </div>
