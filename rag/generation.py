@@ -145,16 +145,16 @@ def generate_answer(
 def build_context(query):
     results = retrieve(query, n_results=5)
     sources = []
-    documents = results["documents"][0]
-    metadatas = results["metadatas"][0]
 
-    for index in range(len(documents)):
+    for index, result in enumerate(results):
+        metadata = result["metadata"]
         sources.append(
             {
                 "id": f"[S{index + 1}]",
-                "document": documents[index],
-                "metadata": metadatas[index],
-                "dieu": metadatas[index]["dieu"],
+                "document": result["document"],
+                "metadata": metadata,
+                "dieu": metadata["dieu"],
+                "rerank_score": result.get("rerank_score"),
             }
         )
 
