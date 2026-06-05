@@ -1,25 +1,10 @@
-# Shared Python dependencies for both CPU-only and CUDA-capable machines.
-# Keep torch generic here because pip cannot auto-detect the machine's CUDA
-# stack from a requirements file.
-#
-# CPU install:
-#   pip install -r rag/requirements.txt
-#
-# CUDA install:
-#   pip install -r rag/requirements.txt
-#   pip install --upgrade torch --index-url https://download.pytorch.org/whl/cu124
-#
-# Windows CUDA install for direct GGUF inference with Python 3.10:
-#   pip install --upgrade --force-reinstall https://github.com/abetlen/llama-cpp-python/releases/download/v0.3.4-cu124/llama_cpp_python-0.3.4-cp310-cp310-win_amd64.whl
-#
-# If the target machine uses a different CUDA runtime, replace "cu124" with the
-# matching value from the official PyTorch install guide.
 chromadb
 huggingface-hub
-
+llama-cpp-python
 peewee
 pymysql
 python-dotenv
 transformers
 torch
 sentence-transformers
+sentencepiece

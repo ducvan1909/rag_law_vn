@@ -7,10 +7,7 @@ from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 
-try:
-    from .retrieval import retrieve
-except ImportError:  # pragma: no cover - fallback for direct script execution
-    from retrieval import retrieve
+from retrieval import retrieve
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
@@ -148,16 +145,16 @@ def generate_answer(
 def build_context(query):
     results = retrieve(query, n_results=5)
     sources = []
-    documents = results["documents"][0]
-    metadatas = results["metadatas"][0]
 
-    for index in range(len(documents)):
+    for index, result in enumerate(results):
+        metadata = result["metadata"]
         sources.append(
             {
                 "id": f"[S{index + 1}]",
-                "document": documents[index],
-                "metadata": metadatas[index],
-                "dieu": metadatas[index]["dieu"],
+                "document": result["document"],
+                "metadata": metadata,
+                "dieu": metadata["dieu"],
+                "rerank_score": result.get("rerank_score"),
             }
         )
 
