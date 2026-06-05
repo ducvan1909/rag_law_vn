@@ -114,7 +114,11 @@ input {
 
 .rail-button--star .rail-button__label,
 .rail-button--info .rail-button__label {
-  font-size: 1.3rem;
+  font-size: 1.6rem;
+}
+
+.rail-button__label--home {
+  font-size: 2rem;
 }
 
 .rail-button:hover {
@@ -127,6 +131,12 @@ input {
   gap: 24px;
   min-height: calc(100vh - 64px);
   grid-template-rows: auto 1fr;
+}
+
+.hero--donate {
+  grid-template-rows: 1fr;
+  align-content: center;
+  justify-items: center;
 }
 
 .chat-stack {
@@ -142,6 +152,74 @@ input {
   justify-content: flex-end;
   gap: 10px;
   width: 100%;
+}
+
+.donate-view {
+  width: min(640px, 100%);
+  justify-self: center;
+  align-self: center;
+}
+
+.info-view {
+  width: min(640px, 100%);
+  justify-self: center;
+  align-self: center;
+}
+
+.donate-panel {
+  min-height: 440px;
+  height: auto;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 20px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.donate-panel__header {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.donate-panel__header h2 {
+  margin: 0;
+  font-size: 2rem;
+}
+
+.donate-panel__content {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+}
+
+.donate-panel__content img {
+  width: min(260px, 100%);
+  height: auto;
+  display: block;
+}
+
+.info-panel {
+  min-height: 440px;
+  height: auto;
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: 20px;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+.info-panel__content {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  text-align: left;
 }
 
 .chat-action {
@@ -600,6 +678,22 @@ h1 {
 
   .chat-stack {
     width: 100%;
+  }
+
+  .donate-view {
+    width: 100%;
+  }
+
+  .info-view {
+    width: 100%;
+  }
+
+  .donate-panel {
+    min-height: calc(100vh - 160px);
+  }
+
+  .info-panel {
+    min-height: calc(100vh - 160px);
   }
 
   .chat-actions {

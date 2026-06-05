@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
+import donateQr from "./Rickrolling_QR_code.png";
 
 type MessageRole = "assistant" | "system" | "user";
 
@@ -218,7 +219,8 @@ export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isStarOpen, setIsStarOpen] = useState(false);
+  const [isDonateView, setIsDonateView] = useState(false);
+  const [isInfoView, setIsInfoView] = useState(false);
   const [historyVisibleCount, setHistoryVisibleCount] = useState(HISTORY_BATCH_SIZE);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -293,6 +295,8 @@ export default function App() {
     setIsSending(false);
     setIsHistoryOpen(false);
     setSelectedHistoryConversation(null);
+    setIsDonateView(false);
+    setIsInfoView(false);
   }
 
   function openConversation(conversation: Conversation) {
@@ -381,23 +385,39 @@ export default function App() {
           >
             <span className="rail-button__label">{isDarkMode ? "Light" : "Dảk"}</span>
           </button>
+          <button
+            type="button"
+            className="rail-button rail-button--home"
+            onClick={() => {
+              setIsDonateView(false);
+              setIsInfoView(false);
+            }}
+            aria-label="Ve man hinh chinh"
+            aria-pressed={!isDonateView && !isInfoView}
+          >
+            <span className="rail-button__label rail-button__label--home">⌂</span>
+          </button>
           <div className="rail-bottom-actions">
             <button
               type="button"
               className="rail-button rail-button--star"
-              onClick={() => setIsStarOpen(true)}
-              aria-controls="star-panel"
-              aria-expanded={isStarOpen}
+              onClick={() => {
+                setIsDonateView(true);
+                setIsInfoView(false);
+              }}
+              aria-pressed={isDonateView}
               aria-label="Mo cua so sao"
             >
-              <span className="rail-button__label">✡️</span>
+              <span className="rail-button__label">✡</span>
             </button>
             <button
               type="button"
               className="rail-button rail-button--info"
-              onClick={() => setIsInfoOpen(true)}
-              aria-controls="info-panel"
-              aria-expanded={isInfoOpen}
+              onClick={() => {
+                setIsInfoView(true);
+                setIsDonateView(false);
+              }}
+              aria-pressed={isInfoView}
               aria-label="Mo thong tin"
             >
               <span className="rail-button__label">ⓘ</span>
@@ -405,65 +425,95 @@ export default function App() {
           </div>
         </aside>
 
-      <section className="hero">
-        <div className="hero__copy">
-          <p className="eyebrow">RAG Law VN</p>
-          <h1>Giải đáp thắc mắc pháp luật cùng AI</h1>
-          <p className="subtitle">Ửok In Process.</p>
-        </div>
-
-        <div className="chat-stack">
-          <div className="panel">
-            <div
-              ref={messagesRef}
-              className="messages"
-              aria-live="polite"
-              aria-label="Lich su chat"
-            >
-              {currentConversation.messages.map((message) => (
-                <article key={message.id} className={`bubble bubble--${message.role}`}>
-                  {message.text}
-                </article>
-              ))}
+        <section className={`hero ${isDonateView || isInfoView ? "hero--donate" : ""}`}>
+          {!isDonateView && !isInfoView ? (
+            <div className="hero__copy">
+              <p className="eyebrow">RAG Law VN</p>
+              <h1>Giải đáp thắc mắc pháp luật cùng AI</h1>
+              <p className="subtitle">Ửok In Process.</p>
             </div>
+          ) : null}
 
-            <form className="composer" onSubmit={handleSubmit}>
-              <input
-                className="composer__input"
-                type="text"
-                value={input}
-                onChange={(event) => setInput(event.target.value)}
-                placeholder="Nhập câu hỏi cho AI..."
-                aria-label="Nhap cau hoi cho AI"
-              />
-              <button className="composer__button" type="submit" disabled={!canSend}>
-                {isSending ? "Đang gửi..." : "Gửi"}
-              </button>
-            </form>
-          </div>
+          {isDonateView ? (
+            <div className="donate-view">
+              <div className="donate-panel">
+                <div className="donate-panel__header">
+                  
+                  <h2>Khều Donate</h2>
+                </div>
+                <div className="donate-panel__content">
+                  <img src={donateQr} alt="Donate QR" />
+                  
+                </div>
+              </div>
+            </div>
+          ) : isInfoView ? (
+            <div className="info-view">
+              <div className="info-panel">
+                <div className="donate-panel__header">
+                  <h2 className="eyebrow">Thông tin</h2>
+                  
+                </div>
+                <div className="info-panel__content">
+                  <p>Dự án AI vớ vẩn</p>
+                  
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="chat-stack">
+              <div className="panel">
+                <div
+                  ref={messagesRef}
+                  className="messages"
+                  aria-live="polite"
+                  aria-label="Lich su chat"
+                >
+                  {currentConversation.messages.map((message) => (
+                    <article key={message.id} className={`bubble bubble--${message.role}`}>
+                      {message.text}
+                    </article>
+                  ))}
+                </div>
 
-          <div className="chat-actions">
-            <button
-              type="button"
-              className="chat-action"
-              onClick={startNewChat}
-              aria-label="Tạo chat mới"
-            >
-              Chat mới
-            </button>
-            <button
-              type="button"
-              className="chat-action"
-              onClick={() => setIsHistoryOpen((current) => !current)}
-              aria-expanded={isHistoryOpen}
-              aria-controls="chat-history-panel"
-              aria-label="Mở lịch sử chat"
-            >
-              Lịch sử
-            </button>
-          </div>
-        </div>
-      </section>
+                <form className="composer" onSubmit={handleSubmit}>
+                  <input
+                    className="composer__input"
+                    type="text"
+                    value={input}
+                    onChange={(event) => setInput(event.target.value)}
+                    placeholder="Nhập câu hỏi cho AI..."
+                    aria-label="Nhap cau hoi cho AI"
+                  />
+                  <button className="composer__button" type="submit" disabled={!canSend}>
+                    {isSending ? "Đang gửi..." : "Gửi"}
+                  </button>
+                </form>
+              </div>
+
+              <div className="chat-actions">
+                <button
+                  type="button"
+                  className="chat-action"
+                  onClick={startNewChat}
+                  aria-label="Tạo chat mới"
+                >
+                  Chat mới
+                </button>
+                <button
+                  type="button"
+                  className="chat-action"
+                  onClick={() => setIsHistoryOpen((current) => !current)}
+                  aria-expanded={isHistoryOpen}
+                  aria-controls="chat-history-panel"
+                  aria-label="Mở lịch sử chat"
+                >
+                  Lịch sử
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
 
       {isHistoryOpen ? (
         <div
@@ -583,89 +633,6 @@ export default function App() {
         </div>
       ) : null}
 
-      {isInfoOpen ? (
-        <div
-          className="history-backdrop"
-          role="presentation"
-          onClick={() => setIsInfoOpen(false)}
-        >
-          <aside
-            id="info-panel"
-            className="history-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="info-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="history-panel__header">
-              <div>
-                <h2 id="info-title">Thông tin</h2>
-              </div>
-              <div className="history-panel__actions">
-                <button
-                  type="button"
-                  className="history-panel__close"
-                  onClick={() => setIsInfoOpen(false)}
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-
-            <div className="history-panel__list" aria-label="Thông tin">
-              <p>Nếu một buổi sáng thấy thân đã mòn</p> 
-              <p>Mặt cô trốn sau làn phấn son</p>
-              <p>Lặng nhìn trong gương thất thần</p>
-              <p>Nhìn dung nhan mất dần</p>
-              <p>Nhưng thật tình đâu mấy bất ngờ</p>
-              <br></br>
-              <p>Nếu lời cô nói đã vương tơ nhện</p>
-              <p>Bài cô hát đi vào lãng quên</p>
-              <p>Và cô đã sống hết đời</p>
-              <p>Một bài ca hết lời</p>
-              <p>Một ca sĩ hết thời</p>
-             
-
-            </div>
-          </aside>
-        </div>
-      ) : null}
-
-      {isStarOpen ? (
-        <div
-          className="history-backdrop"
-          role="presentation"
-          onClick={() => setIsStarOpen(false)}
-        >
-          <aside
-            id="star-panel"
-            className="history-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="star-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="history-panel__header">
-              <div>
-                <h2 id="star-title">Khều Donate</h2>
-              </div>
-              <div className="history-panel__actions">
-                <button
-                  type="button"
-                  className="history-panel__close"
-                  onClick={() => setIsStarOpen(false)}
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-
-            <div className="history-panel__list history-panel__list--center" aria-label="Thong tin">
-                <img src={('../src/Rickrolling_QR_code.png')} alt="Donate QR" />
-            </div>
-          </aside>
-        </div>
-      ) : null}
     </main>
   );
 }
