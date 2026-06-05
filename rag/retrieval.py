@@ -1,38 +1,63 @@
-import chromadb
 import os
 import re
 from pathlib import Path
+from dotenv import load_dotenv
 
 import numpy as np
-from dotenv import load_dotenv
+
+import torch
 from sentence_transformers import SentenceTransformer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+import chromadb
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
 
-model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
+embedding_model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
+embedding_model = SentenceTransformer(embedding_model_name)
 hf_token = os.getenv("HF_TOKEN")
 embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
-collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embed")
+
+rerank_model_name = os.getenv("RERANK_MODEL")
+tokenizer = AutoTokenizer.from_pretrained(rerank_model_name)
+rerank_model = AutoModelForSequenceClassification.from_pretrained(rerank_model_name)
+rerank_model.eval()
+MAX_LENGTH = 512
+
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
 chroma_port = int(os.getenv("CHROMA_PORT", "8001"))
-embedding_model = SentenceTransformer(model_name)
 chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
+collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embed")
 collection = chroma_client.get_collection(collection_name)
 
 PASSAGE_BOUNDARY_PATTERN = re.compile(r"(?<=[.!?;])\s+|\n+")
 
+def chroma_results_to_list(results, batch_index=0):
+    rows = []
+    documents = results.get("documents", [[]])[batch_index]
+
+    for i in range(len(documents)):
+        row = {
+            "index": i,
+            "id": results.get("ids", [[]])[batch_index][i],
+            "document": results.get("documents", [[]])[batch_index][i],
+            "metadata": results.get("metadatas", [[]])[batch_index][i],
+        }
+
+        if "distances" in results and results["distances"]:
+            row["distance"] = results["distances"][batch_index][i]
+
+        rows.append(row)
+
+    return rows
 
 def retrieve(query, embedding_model=embedding_model, collection=collection, n_results=5):
     query_embeddings = embedding_model.encode(query)
-    res = collection.query(query_embeddings=query_embeddings, n_results=n_results)
-    res = rerank(res)
-    return res
-
-def rerank(results):
-    #Rerank .......
-    return results
-
+    raw_results = collection.query(query_embeddings=query_embeddings, n_results=n_results*10)
+    raw_results = chroma_results_to_list(raw_results, batch_index=0)
+    reranked_results = rerank(query, raw_results)
+    # res = extract(query, res)
+    return reranked_results[:n_results]
 
 def extract(query, results, embedding_model=embedding_model, passages_per_document=2, context_window=1):
     """Keep only the most relevant passages and their neighbors in each retrieved chunk."""
@@ -82,5 +107,27 @@ def extract(query, results, embedding_model=embedding_model, passages_per_docume
     compressed_results["documents"] = compressed_batches
     return compressed_results
 
+def rerank(query, results):
+    if not results:
+        return results
+
+    with torch.no_grad():
+        pairs = [[query, result["document"]] for result in results]
+        inputs = tokenizer(pairs, padding=True, truncation='only_second', return_tensors='pt', max_length=MAX_LENGTH)
+        scores = rerank_model(**inputs, return_dict=True).logits.view(-1, ).float().tolist()
+
+    for result, score in zip(results, scores):
+        result["rerank_score"] = score
+
+    return sorted(results, key=lambda result: result["rerank_score"], reverse=True)
+
 if __name__ == "__main__":
-    print(retrieve(query="tổ chức sử dụng ma túy"))
+    query = ""
+    while query != "exit":
+        query = input("Enter query: ")
+        if query == exit:
+            break
+        results = retrieve(query, n_results=5)
+        for result in results:
+            print(result["document"])
+            print("___________________")
