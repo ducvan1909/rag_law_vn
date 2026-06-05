@@ -7,7 +7,7 @@ from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 
-from retrieval import retrieve
+from rag.retrieval import retrieve
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
