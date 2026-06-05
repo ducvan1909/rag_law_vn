@@ -217,10 +217,7 @@ export default function App() {
     useState<Conversation | null>(null);
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isDonateView, setIsDonateView] = useState(false);
-  const [isInfoView, setIsInfoView] = useState(false);
+  const [screen, setScreen] = useState<"chat" | "history" | "donate" | "info">("chat");
   const [historyVisibleCount, setHistoryVisibleCount] = useState(HISTORY_BATCH_SIZE);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -244,10 +241,12 @@ export default function App() {
   }, [savedConversations]);
 
   useEffect(() => {
-    if (isHistoryOpen) {
+    if (screen === "history") {
       setHistoryVisibleCount(HISTORY_BATCH_SIZE);
+      return;
     }
-  }, [isHistoryOpen]);
+    setSelectedHistoryConversation(null);
+  }, [screen]);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
 
@@ -293,24 +292,36 @@ export default function App() {
     setCurrentConversation(createConversation());
     setInput("");
     setIsSending(false);
-    setIsHistoryOpen(false);
+    setScreen("chat");
     setSelectedHistoryConversation(null);
-    setIsDonateView(false);
-    setIsInfoView(false);
+  }
+
+  function openHistoryScreen() {
+    setSelectedHistoryConversation(null);
+    setScreen("history");
   }
 
   function openConversation(conversation: Conversation) {
     setSelectedHistoryConversation(conversation);
   }
 
+  function continueConversation(conversation: Conversation) {
+    archiveCurrentConversation();
+    setCurrentConversation(conversation);
+    setInput("");
+    setIsSending(false);
+    setSelectedHistoryConversation(null);
+    setScreen("chat");
+  }
+
+  function closeConversationPopup() {
+    setSelectedHistoryConversation(null);
+  }
+
   function clearHistory() {
     setSavedConversations([]);
     localStorage.removeItem(SAVED_CONVERSATIONS_KEY);
     setHistoryVisibleCount(HISTORY_BATCH_SIZE);
-    setSelectedHistoryConversation(null);
-  }
-
-  function backToConversationList() {
     setSelectedHistoryConversation(null);
   }
 
@@ -388,24 +399,35 @@ export default function App() {
           <button
             type="button"
             className="rail-button rail-button--home"
-            onClick={() => {
-              setIsDonateView(false);
-              setIsInfoView(false);
-            }}
+            onClick={() => setScreen("chat")}
             aria-label="Ve man hinh chinh"
-            aria-pressed={!isDonateView && !isInfoView}
+            aria-pressed={screen === "chat"}
           >
             <span className="rail-button__label rail-button__label--home">⌂</span>
           </button>
           <div className="rail-bottom-actions">
             <button
               type="button"
+              className="rail-button rail-button--new-chat"
+              onClick={startNewChat}
+              aria-label="Tao chat moi"
+            >
+              <span className="rail-button__label">Chat mới</span>
+            </button>
+            <button
+              type="button"
+              className="rail-button rail-button--history"
+              onClick={openHistoryScreen}
+              aria-label="Mo lich su"
+              aria-pressed={screen === "history"}
+            >
+              <span className="rail-button__label">Lịch sử</span>
+            </button>
+            <button
+              type="button"
               className="rail-button rail-button--star"
-              onClick={() => {
-                setIsDonateView(true);
-                setIsInfoView(false);
-              }}
-              aria-pressed={isDonateView}
+              onClick={() => setScreen("donate")}
+              aria-pressed={screen === "donate"}
               aria-label="Mo cua so sao"
             >
               <span className="rail-button__label">✡</span>
@@ -413,11 +435,8 @@ export default function App() {
             <button
               type="button"
               className="rail-button rail-button--info"
-              onClick={() => {
-                setIsInfoView(true);
-                setIsDonateView(false);
-              }}
-              aria-pressed={isInfoView}
+              onClick={() => setScreen("info")}
+              aria-pressed={screen === "info"}
               aria-label="Mo thong tin"
             >
               <span className="rail-button__label">ⓘ</span>
@@ -425,42 +444,15 @@ export default function App() {
           </div>
         </aside>
 
-        <section className={`hero ${isDonateView || isInfoView ? "hero--donate" : ""}`}>
-          {!isDonateView && !isInfoView ? (
+      <section className={`hero ${screen !== "chat" ? "hero--screen" : ""}`}>
+        {screen === "chat" ? (
+          <>
             <div className="hero__copy">
               <p className="eyebrow">RAG Law VN</p>
               <h1>Giải đáp thắc mắc pháp luật cùng AI</h1>
               <p className="subtitle">Ửok In Process.</p>
             </div>
-          ) : null}
 
-          {isDonateView ? (
-            <div className="donate-view">
-              <div className="donate-panel">
-                <div className="donate-panel__header">
-                  
-                  <h2>Khều Donate</h2>
-                </div>
-                <div className="donate-panel__content">
-                  <img src={donateQr} alt="Donate QR" />
-                  
-                </div>
-              </div>
-            </div>
-          ) : isInfoView ? (
-            <div className="info-view">
-              <div className="info-panel">
-                <div className="donate-panel__header">
-                  <h2 className="eyebrow">Thông tin</h2>
-                  
-                </div>
-                <div className="info-panel__content">
-                  <p>Dự án AI vớ vẩn</p>
-                  
-                </div>
-              </div>
-            </div>
-          ) : (
             <div className="chat-stack">
               <div className="panel">
                 <div
@@ -491,62 +483,18 @@ export default function App() {
                 </form>
               </div>
 
-              <div className="chat-actions">
-                <button
-                  type="button"
-                  className="chat-action"
-                  onClick={startNewChat}
-                  aria-label="Tạo chat mới"
-                >
-                  Chat mới
-                </button>
-                <button
-                  type="button"
-                  className="chat-action"
-                  onClick={() => setIsHistoryOpen((current) => !current)}
-                  aria-expanded={isHistoryOpen}
-                  aria-controls="chat-history-panel"
-                  aria-label="Mở lịch sử chat"
-                >
-                  Lịch sử
-                </button>
-              </div>
-            </div>
-          )}
-        </section>
 
-      {isHistoryOpen ? (
-        <div
-          className="history-backdrop"
-          role="presentation"
-          onClick={() => setIsHistoryOpen(false)}
-        >
-          <aside
-            id="chat-history-panel"
-            className="history-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="chat-history-title"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="history-panel__header">
-              <div>
-                <h2 id="chat-history-title">
-                  {selectedHistoryConversation
-                    ? selectedHistoryConversation.title
-                    : "Lịch sử hội thoại"}
-                </h2>
-              </div>
-              <div className="history-panel__actions">
-                {selectedHistoryConversation ? (
-                  <button
-                    type="button"
-                    className="history-panel__back"
-                    onClick={backToConversationList}
-                  >
-                    Quay lai
-                  </button>
-                ) : (
+
+            </div>
+          </>
+        ) : screen === "history" ? (
+          <div className="history-view">
+            <aside className="history-panel history-panel--screen" aria-label="Lich su chat">
+              <div className="history-panel__header">
+                <div>
+                  <h2 id="chat-history-title">Lịch sử hội thoại</h2>
+                </div>
+                <div className="history-panel__actions">
                   <button
                     type="button"
                     className="history-panel__clear"
@@ -555,84 +503,151 @@ export default function App() {
                   >
                     Xóa lịch sử
                   </button>
-                )}
-                <button
-                  type="button"
-                  className="history-panel__close"
-                  onClick={() => setIsHistoryOpen(false)}
+                </div>
+              </div>
+
+              <div className="history-panel__content history-panel__content--single">
+                <section
+                  className={`history-panel__list${
+                    savedConversations.length === 0 ? " history-panel__list--empty" : ""
+                  }`}
+                  aria-label="Danh sách cuộc hội thoại"
                 >
-                  Đóng
-                </button>
+                  {savedConversations.length === 0 ? (
+                    <p className="history-panel__empty history-panel__empty--panel">
+                      Chưa có cuộc hội thoại nào.
+                    </p>
+                  ) : (
+                    <>
+                      {visibleSavedConversations.map((conversation) => {
+                        const isActive =
+                          selectedHistoryConversation?.id === conversation.id;
+
+                        return (
+                          <button
+                            key={conversation.id}
+                            type="button"
+                            className={`history-conversation${
+                              isActive ? " history-conversation--active" : ""
+                            }`}
+                            onClick={() => openConversation(conversation)}
+                            aria-pressed={isActive}
+                          >
+                            <span className="history-conversation__title">{conversation.title}</span>
+                            <span className="history-conversation__time">
+                              {formatConversationTime(conversation.updatedAt)}
+                            </span>
+                          </button>
+                        );
+                      })}
+                      {visibleSavedConversations.length < savedConversations.length ? (
+                        <button
+                          type="button"
+                          className="history-panel__more"
+                          onClick={() =>
+                            setHistoryVisibleCount((current) => current + HISTORY_BATCH_SIZE)
+                          }
+                        >
+                          Tải thêm{" "}
+                          {Math.min(
+                            HISTORY_BATCH_SIZE,
+                            savedConversations.length - visibleSavedConversations.length,
+                          )}{" "}
+                          cuộc hội thoại cũ hơn
+                        </button>
+                      ) : null}
+                    </>
+                  )}
+                </section>
+              </div>
+            </aside>
+            {selectedHistoryConversation ? (
+              <div
+                className="history-backdrop"
+                role="presentation"
+                onClick={closeConversationPopup}
+              >
+                <section
+                  className="history-panel history-panel--modal"
+                  aria-label="Chi tiết cuộc hội thoại"
+                  aria-modal="true"
+                  role="dialog"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="history-panel__header">
+                    <div>
+                      <p className="history-panel__eyebrow">Chi tiết cuộc hội thoại</p>
+                      <h2>{selectedHistoryConversation.title}</h2>
+                    </div>
+                    <div className="history-panel__actions">
+                      <button
+                        type="button"
+                        className="history-panel__clear"
+                        onClick={() => continueConversation(selectedHistoryConversation)}
+                      >
+                        Tiếp tục chat
+                      </button>
+                      <button
+                        type="button"
+                        className="history-panel__close"
+                        onClick={closeConversationPopup}
+                      >
+                        Đóng
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="history-detail">
+                    <div className="history-detail__meta">
+                      <span>{selectedHistoryConversation.messages.length} tin nhắn</span>
+                      <span>{formatConversationTime(selectedHistoryConversation.updatedAt)}</span>
+                    </div>
+                    <div className="history-detail__messages" aria-label="Noi dung cuoc hoi thoai">
+                      {selectedHistoryConversation.messages.map((message, index) => (
+                        <article
+                          key={`${selectedHistoryConversation.id}-${message.id}`}
+                          className={`history-item history-item--${message.role}`}
+                        >
+                          <div className="history-item__meta">
+                            <span className="history-item__role">{message.role}</span>
+                            <span className="history-item__time">Tin nhắn {index + 1}</span>
+                          </div>
+                          <p className="history-item__text">{message.text}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </div>
+                </section>
+              </div>
+            ) : null}
+          </div>
+        ) : screen === "donate" ? (
+          <div className="donate-view">
+            <div className="donate-panel">
+              <div className="donate-panel__header">
+                <h2>Khều Donate</h2>
+              </div>
+              <div className="donate-panel__content">
+                <img src={donateQr} alt="Donate QR" />
+                
               </div>
             </div>
-
-            <div className="history-panel__list" aria-label="Danh sach cuoc hoi thoai">
-              {selectedHistoryConversation ? (
-                <div className="history-detail">
-                  <div className="history-detail__meta">
-                    <span>{selectedHistoryConversation.messages.length} tin nhắn</span>
-                    <span>{formatConversationTime(selectedHistoryConversation.updatedAt)}</span>
-                  </div>
-                  <div className="history-detail__messages" aria-label="Noi dung cuoc hoi thoai">
-                    {selectedHistoryConversation.messages.map((message) => (
-                      <article
-                        key={`${selectedHistoryConversation.id}-${message.id}`}
-                        className={`history-detail__message history-detail__message--${message.role}`}
-                      >
-                        <div className="history-detail__message-role">{message.role}</div>
-                        <div className="history-detail__message-text">{message.text}</div>
-                      </article>
-                    ))}
-                  </div>
-                </div>
-              ) : savedConversations.length === 0 ? (
-                <p className="history-panel__empty">Chưa có cuộc hội thoại nào.</p>
-              ) : (
-                <>
-                  {visibleSavedConversations.map((conversation) => (
-                    <button
-                      key={conversation.id}
-                      type="button"
-                      className="history-conversation"
-                      onClick={() => openConversation(conversation)}
-                    >
-                      <div className="history-conversation__top">
-                        <span className="history-conversation__title">{conversation.title}</span>
-                        <span className="history-conversation__time">
-                          {formatConversationTime(conversation.updatedAt)}
-                        </span>
-                      </div>
-                      <div className="history-conversation__meta">
-                        {conversation.messages.length} tin nhắn
-                      </div>
-                      <p className="history-conversation__preview">
-                        {getConversationPreview(conversation)}
-                      </p>
-                    </button>
-                  ))}
-                  {visibleSavedConversations.length < savedConversations.length ? (
-                    <button
-                      type="button"
-                      className="history-panel__more"
-                      onClick={() =>
-                        setHistoryVisibleCount((current) => current + HISTORY_BATCH_SIZE)
-                      }
-                    >
-                      Tải thêm{" "}
-                      {Math.min(
-                        HISTORY_BATCH_SIZE,
-                        savedConversations.length - visibleSavedConversations.length,
-                      )}{" "}
-                      cuộc hội thoại cũ hơn
-                    </button>
-                  ) : null}
-                </>
-              )}
+          </div>
+        ) : (
+          <div className="info-view">
+            <div className="info-panel">
+              <div className="donate-panel__header">
+                <h2 className="eyebrow">Thông tin</h2>
+              </div>
+              <div className="info-panel__content">
+                <p>Dự án AI vớ vẩn</p>
+              </div>
             </div>
-          </aside>
-        </div>
-      ) : null}
+          </div>
+        )}
+      </section>
 
     </main>
   );
 }
+
