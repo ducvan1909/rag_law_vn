@@ -2,16 +2,26 @@
 
 Dự án RAG luật Việt Nam.
 
+## Backend chat API
+
+Da co san backend `/chat` de noi frontend vao model AI trong `rag/generation.py`.
+
+Chay local:
+
+```bash
+cd api
+pip install -r requirements.txt
+fastapi dev main.py
+```
+
 ## Frontend
 
-Frontend React + TypeScript nằm trong thư mục `web/`.
-
-Nếu bạn đang dùng Node `v19.x` như máy hiện tại, cần cài lại dependencies sau khi tôi đã hạ Vite xuống bản tương thích. Nếu muốn giữ Vite mới hơn, hãy nâng Node lên `20.19+` hoặc `22.12+`.
+Frontend React + TypeScript nằm trong thư mục `web/`. 
 
 Chạy local:
 
 ```bash
-cd web
+cd ../web
 npm install
 npm run dev
 ```
@@ -22,19 +32,3 @@ Nếu đã có backend nhận câu hỏi, cấu hình biến môi trường:
 VITE_CHAT_API_URL=http://localhost:8000/chat
 ```
 
-## Backend chat API
-
-Da co san backend `/chat` de noi frontend vao model AI trong `rag/generation.py`.
-
-Chay local:
-
-```bash
-python api_server.py
-```
-
-Mac dinh:
-
-- `GET /health` tra ve trang thai server
-- `POST /chat` nhan JSON `{ "question": "..." }` va tra ve `{ "answer": "..." }`
-- `CHAT_API_PORT=8000`
-- `CHAT_API_HOST=0.0.0.0`
