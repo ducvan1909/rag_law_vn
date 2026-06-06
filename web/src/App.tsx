@@ -36,8 +36,6 @@ const SAVED_CONVERSATIONS_KEY = "rag-law-vn.saved-conversations";
 const LEGACY_HISTORY_KEY = "rag-law-vn.chat-history";
 const HISTORY_BATCH_SIZE = 100;
 const DEFAULT_CONVERSATION_TITLE = "Cuoc hoi thoai moi";
-const AI_THINKING_MESSAGE = "AI đang suy nghĩ...";
-const AI_THINKING_DOTS = [0, 1, 2];
 
 function createId() {
   return `conv-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -221,7 +219,6 @@ export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [screen, setScreen] = useState<"chat" | "history" | "donate" | "info">("chat");
   const [historyVisibleCount, setHistoryVisibleCount] = useState(HISTORY_BATCH_SIZE);
-  const pendingReplyRef = useRef<{ conversationId: string; messageId: number } | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
     if (savedTheme === "dark") return true;
@@ -254,17 +251,13 @@ export default function App() {
   const messagesRef = useRef<HTMLDivElement | null>(null);
 
   useLayoutEffect(() => {
-    if (screen !== "chat") {
-      return;
-    }
-
     const el = messagesRef.current;
     if (!el) {
       return;
     }
 
     el.scrollTop = el.scrollHeight;
-  }, [currentConversation.messages.length, screen]);
+  }, [currentConversation.messages]);
 
   const canSend = input.trim().length > 0 && !isSending;
   const visibleSavedConversations = useMemo(
@@ -295,7 +288,6 @@ export default function App() {
   }
 
   function startNewChat() {
-    pendingReplyRef.current = null;
     archiveCurrentConversation();
     setCurrentConversation(createConversation());
     setInput("");
@@ -314,7 +306,6 @@ export default function App() {
   }
 
   function continueConversation(conversation: Conversation) {
-    pendingReplyRef.current = null;
     archiveCurrentConversation();
     setCurrentConversation(conversation);
     setInput("");
@@ -347,15 +338,9 @@ export default function App() {
       role: "user",
       text: question,
     };
-    const pendingAssistantMessage: Message = {
-      id: Date.now() + 1,
-      role: "assistant",
-      text: AI_THINKING_MESSAGE,
-    };
-    const conversationId = currentConversation.id;
 
     setCurrentConversation((current) => {
-      const messages = [...current.messages, userMessage, pendingAssistantMessage];
+      const messages = [...current.messages, userMessage];
       return {
         ...current,
         title:
@@ -366,62 +351,35 @@ export default function App() {
         updatedAt: Date.now(),
       };
     });
-    pendingReplyRef.current = {
-      conversationId,
-      messageId: pendingAssistantMessage.id,
-    };
     setInput("");
     setIsSending(true);
 
     try {
       const reply = await sendQuestion(question);
-      const pendingReply = pendingReplyRef.current;
-      if (pendingReply) {
-        const replyMessage: Message = {
-          id: pendingReply.messageId,
-          role: reply.role,
-          text: reply.text,
-        };
+      const replyMessage: Message = {
+        id: Date.now() + 1,
+        role: reply.role,
+        text: reply.text,
+      };
 
-        setCurrentConversation((current) => {
-          if (current.id !== pendingReply.conversationId) {
-            return current;
-          }
-
-          return {
-            ...current,
-            messages: current.messages.map((message) =>
-              message.id === pendingReply.messageId ? replyMessage : message,
-            ),
-            updatedAt: Date.now(),
-          };
-        });
-      }
+      setCurrentConversation((current) => ({
+        ...current,
+        messages: [...current.messages, replyMessage],
+        updatedAt: Date.now(),
+      }));
     } catch {
-      const pendingReply = pendingReplyRef.current;
-      if (pendingReply) {
-        const errorMessage: Message = {
-          id: pendingReply.messageId,
-          role: "system",
-          text: "Không thể gửi câu hỏi, kiểm tra API hoặc kết nối mạng",
-        };
+      const errorMessage: Message = {
+        id: Date.now() + 1,
+        role: "system",
+        text: "Không thể gửi câu hỏi, kiểm tra API hoặc kết nối mạng",
+      };
 
-        setCurrentConversation((current) => {
-          if (current.id !== pendingReply.conversationId) {
-            return current;
-          }
-
-          return {
-            ...current,
-            messages: current.messages.map((message) =>
-              message.id === pendingReply.messageId ? errorMessage : message,
-            ),
-            updatedAt: Date.now(),
-          };
-        });
-      }
+      setCurrentConversation((current) => ({
+        ...current,
+        messages: [...current.messages, errorMessage],
+        updatedAt: Date.now(),
+      }));
     } finally {
-      pendingReplyRef.current = null;
       setIsSending(false);
     }
   }
@@ -505,30 +463,8 @@ export default function App() {
                   
                 >
                   {currentConversation.messages.map((message) => (
-                    <article
-                      key={message.id}
-                      className={`bubble bubble--${message.role}${
-                        message.text === AI_THINKING_MESSAGE ? " bubble--thinking" : ""
-                      }`}
-                    >
-                      {message.text === AI_THINKING_MESSAGE ? (
-                        <span className="thinking-text">
-                          AI đang suy nghĩ
-                          <span className="thinking-dots" aria-hidden="true">
-                            {AI_THINKING_DOTS.map((dot) => (
-                              <span
-                                key={dot}
-                                className="thinking-dots__dot"
-                                style={{ animationDelay: `${dot * 0.18}s` }}
-                              >
-                                .
-                              </span>
-                            ))}
-                          </span>
-                        </span>
-                      ) : (
-                        message.text
-                      )}
+                    <article key={message.id} className={`bubble bubble--${message.role}`}>
+                      {message.text}
                     </article>
                   ))}
                 </div>
