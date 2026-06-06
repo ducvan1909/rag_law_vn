@@ -36,6 +36,7 @@ html,
 body,
 #root {
   min-height: 100%;
+  height: 100%;
   margin: 0;
 }
 
@@ -51,10 +52,12 @@ input {
 }
 
 .shell {
+  height: 100vh;
   min-height: 100vh;
   padding: 32px 32px 32px 144px;
   display: grid;
   place-items: start center;
+  overflow: hidden;
 }
 
 .left-rail {
@@ -126,11 +129,14 @@ input {
 }
 
 .hero {
-width: min(1120px, calc(100vw - 176px));  display: grid;
+  width: min(1120px, calc(100vw - 176px));
+  display: grid;
   gap: 24px;
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  min-height: 0;
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
+  overflow: hidden;
 }
 
 .hero--screen {
@@ -299,6 +305,7 @@ h1 {
   min-height: 0;
   width: 100%;
   overflow: auto;
+  scroll-behavior: smooth;
   display: grid;
   align-content: start;
   justify-items: start;
@@ -310,7 +317,7 @@ h1 {
 .bubble {
   display: inline-block;
   width: fit-content;
-  
+  max-width: 60%;
   padding: 8px 12px;
   border-radius: 12px;
   line-height: 1.55;
@@ -334,6 +341,40 @@ h1 {
 .bubble--system {
   justify-self: start;
   background: var(--bubble-bg);
+}
+
+.bubble--thinking {
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.thinking-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
+}
+
+.thinking-dots {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.thinking-dots__dot {
+  display: inline-block;
+  animation: thinking-dot-bounce 0.9s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes thinking-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-0.22em);
+  }
 }
 
 .composer {
@@ -722,7 +763,7 @@ h1 {
 
   .hero {
     width: 100%;
-    min-height: calc(100vh - 136px);
+    height: calc(100vh - 136px);
   }
 
   .panel {
