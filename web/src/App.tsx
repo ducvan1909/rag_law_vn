@@ -371,7 +371,7 @@ export default function App() {
       const errorMessage: Message = {
         id: Date.now() + 1,
         role: "system",
-        text: "Khong the gui cau hoi. Kiem tra lai API hoac ket noi mang.",
+        text: "Không thể gửi câu hỏi, kiểm tra API hoặc kết nối mạng",
       };
 
       setCurrentConversation((current) => ({
@@ -386,13 +386,14 @@ export default function App() {
 
     return (
       <main className="shell">
-        <aside className="left-rail" aria-label="Thanh cong cu">
+        <aside className="left-rail" >
           <button
             type="button"
             className="rail-button rail-button--theme"
             onClick={() => setIsDarkMode((current) => !current)}
             aria-pressed={isDarkMode}
-            aria-label="Bat hoac tat dark mode"
+            
+          
           >
             <span className="rail-button__label">{isDarkMode ? "Light" : "Dảk"}</span>
           </button>
@@ -400,7 +401,7 @@ export default function App() {
             type="button"
             className="rail-button rail-button--home"
             onClick={() => setScreen("chat")}
-            aria-label="Ve man hinh chinh"
+           
             aria-pressed={screen === "chat"}
           >
             <span className="rail-button__label rail-button__label--home">⌂</span>
@@ -410,7 +411,7 @@ export default function App() {
               type="button"
               className="rail-button rail-button--new-chat"
               onClick={startNewChat}
-              aria-label="Tao chat moi"
+              
             >
               <span className="rail-button__label">Chat mới</span>
             </button>
@@ -418,7 +419,7 @@ export default function App() {
               type="button"
               className="rail-button rail-button--history"
               onClick={openHistoryScreen}
-              aria-label="Mo lich su"
+              
               aria-pressed={screen === "history"}
             >
               <span className="rail-button__label">Lịch sử</span>
@@ -428,7 +429,7 @@ export default function App() {
               className="rail-button rail-button--star"
               onClick={() => setScreen("donate")}
               aria-pressed={screen === "donate"}
-              aria-label="Mo cua so sao"
+              
             >
               <span className="rail-button__label">✡</span>
             </button>
@@ -437,7 +438,7 @@ export default function App() {
               className="rail-button rail-button--info"
               onClick={() => setScreen("info")}
               aria-pressed={screen === "info"}
-              aria-label="Mo thong tin"
+             
             >
               <span className="rail-button__label">ⓘ</span>
             </button>
@@ -459,7 +460,7 @@ export default function App() {
                   ref={messagesRef}
                   className="messages"
                   aria-live="polite"
-                  aria-label="Lich su chat"
+                  
                 >
                   {currentConversation.messages.map((message) => (
                     <article key={message.id} className={`bubble bubble--${message.role}`}>
@@ -475,7 +476,7 @@ export default function App() {
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
                     placeholder="Nhập câu hỏi cho AI..."
-                    aria-label="Nhap cau hoi cho AI"
+                    
                   />
                   <button className="composer__button" type="submit" disabled={!canSend}>
                     {isSending ? "Đang gửi..." : "Gửi"}
@@ -489,7 +490,7 @@ export default function App() {
           </>
         ) : screen === "history" ? (
           <div className="history-view">
-            <aside className="history-panel history-panel--screen" aria-label="Lich su chat">
+            <aside className="history-panel history-panel--screen" >
               <div className="history-panel__header">
                 <div>
                   <h2 id="chat-history-title">Lịch sử hội thoại</h2>
@@ -511,7 +512,7 @@ export default function App() {
                   className={`history-panel__list${
                     savedConversations.length === 0 ? " history-panel__list--empty" : ""
                   }`}
-                  aria-label="Danh sách cuộc hội thoại"
+                 
                 >
                   {savedConversations.length === 0 ? (
                     <p className="history-panel__empty history-panel__empty--panel">
@@ -569,7 +570,7 @@ export default function App() {
               >
                 <section
                   className="history-panel history-panel--modal"
-                  aria-label="Chi tiết cuộc hội thoại"
+                  
                   aria-modal="true"
                   role="dialog"
                   onClick={(event) => event.stopPropagation()}
@@ -602,7 +603,7 @@ export default function App() {
                       <span>{selectedHistoryConversation.messages.length} tin nhắn</span>
                       <span>{formatConversationTime(selectedHistoryConversation.updatedAt)}</span>
                     </div>
-                    <div className="history-detail__messages" aria-label="Noi dung cuoc hoi thoai">
+                    <div className="history-detail__messages">
                       {selectedHistoryConversation.messages.map((message, index) => (
                         <article
                           key={`${selectedHistoryConversation.id}-${message.id}`}
