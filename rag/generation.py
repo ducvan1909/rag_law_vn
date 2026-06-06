@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -125,25 +126,43 @@ def generate_answer(
     presence_penalty=DEFAULT_PRESENCE_PENALTY,
     frequency_penalty=DEFAULT_FREQUENCY_PENALTY,
 ):
-    print("Retrieving...")
-    context, _sources = build_context(query)
-    print("Building prompt...")
-    prompt = build_prompt(query, context)
-    print(prompt)
-    print(f"Generating answer with {model.model} via FPT AI...")
-    return model.create_completion(
-        prompt=prompt,
-        max_tokens=max_new_tokens,
-        temperature=temperature,
-        top_p=top_p,
-        top_k=top_k,
-        presence_penalty=presence_penalty,
-        frequency_penalty=frequency_penalty,
-    )
+    timings = {}
+    total_started_at = time.perf_counter()
+
+    try:
+        print("Retrieving...")
+        context, _sources = build_context(query, timings=timings)
+        print("Building prompt...")
+        prompt = build_prompt(query, context)
+        print(prompt)
+        print(f"Generating answer with {model.model} via FPT AI...")
+
+        generation_started_at = time.perf_counter()
+        try:
+            return model.create_completion(
+                prompt=prompt,
+                max_tokens=max_new_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                top_k=top_k,
+                presence_penalty=presence_penalty,
+                frequency_penalty=frequency_penalty,
+            )
+        finally:
+            timings["generation_ms"] = round(
+                (time.perf_counter() - generation_started_at) * 1000,
+                2,
+            )
+    finally:
+        timings["total_ms"] = round(
+            (time.perf_counter() - total_started_at) * 1000,
+            2,
+        )
+        print(f"[latency] {json.dumps(timings, ensure_ascii=True, sort_keys=True)}")
 
 
-def build_context(query):
-    results = retrieve(query, n_results=5)
+def build_context(query, timings=None):
+    results = retrieve(query, n_results=5, timings=timings)
     sources = []
 
     for index, result in enumerate(results):
