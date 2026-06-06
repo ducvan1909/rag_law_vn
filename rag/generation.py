@@ -8,7 +8,7 @@ from urllib.request import Request, urlopen
 
 from dotenv import load_dotenv
 
-from rag.retrieval import retrieve
+from rag.retrieval import RetrievalResources, retrieve
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(ROOT_DIR / ".env")
@@ -125,13 +125,18 @@ def generate_answer(
     top_k=DEFAULT_TOP_K,
     presence_penalty=DEFAULT_PRESENCE_PENALTY,
     frequency_penalty=DEFAULT_FREQUENCY_PENALTY,
+    retrieval_resources=None,
 ):
     timings = {}
     total_started_at = time.perf_counter()
 
     try:
         print("Retrieving...")
-        context, _sources = build_context(query, timings=timings)
+        context, _sources = build_context(
+            query,
+            retrieval_resources=retrieval_resources,
+            timings=timings,
+        )
         print("Building prompt...")
         prompt = build_prompt(query, context)
         print(prompt)
@@ -161,8 +166,13 @@ def generate_answer(
         print(f"[latency] {json.dumps(timings, ensure_ascii=True, sort_keys=True)}")
 
 
-def build_context(query, timings=None):
-    results = retrieve(query, n_results=5, timings=timings)
+def build_context(query, timings=None, retrieval_resources=None):
+    results = retrieve(
+        query,
+        retrieval_resources,
+        n_results=5,
+        timings=timings,
+    )
     sources = []
 
     for index, result in enumerate(results):
@@ -199,7 +209,7 @@ def build_prompt(query, context):
 """
 
 
-def run_interactive(model):
+def run_interactive(model, retrieval_resources):
     print("\nModel da san sang. Nhap cau hoi moi hoac go 'exit' de thoat.")
     while True:
         try:
@@ -214,13 +224,18 @@ def run_interactive(model):
         if not query:
             continue
 
-        answer = generate_answer(model=model, query=query)
+        answer = generate_answer(
+            model=model,
+            query=query,
+            retrieval_resources=retrieval_resources,
+        )
         print(f"\nTra loi:\n{answer}")
 
 
 def main():
     model = load_generation_model()
-    run_interactive(model)
+    retrieval_resources = RetrievalResources()
+    run_interactive(model, retrieval_resources)
 
 
 if __name__ == "__main__":
