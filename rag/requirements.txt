@@ -1,6 +1,5 @@
 chromadb
 huggingface-hub
-llama-cpp-python
 peewee
 pymysql
 python-dotenv
