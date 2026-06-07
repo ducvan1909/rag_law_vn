@@ -310,7 +310,7 @@ h1 {
 .bubble {
   display: inline-block;
   width: fit-content;
-  max-width: min(360px, 92%);
+  max-width: 70%;
   padding: 8px 12px;
   border-radius: 12px;
   line-height: 1.55;
