@@ -252,6 +252,7 @@ export default function App() {
   }, [screen]);
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
+  const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useLayoutEffect(() => {
     if (screen !== "chat") {
@@ -265,6 +266,16 @@ export default function App() {
 
     el.scrollTop = el.scrollHeight;
   }, [currentConversation.messages.length, screen]);
+
+  useLayoutEffect(() => {
+    const el = composerInputRef.current;
+    if (!el) {
+      return;
+    }
+
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [input]);
 
   const canSend = input.trim().length > 0 && !isSending;
   const visibleSavedConversations = useMemo(
@@ -534,12 +545,19 @@ export default function App() {
                 </div>
 
                 <form className="composer" onSubmit={handleSubmit}>
-                  <input
+                  <textarea
+                    ref={composerInputRef}
                     className="composer__input"
-                    type="text"
                     value={input}
                     onChange={(event) => setInput(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        event.currentTarget.form?.requestSubmit();
+                      }
+                    }}
                     placeholder="Nhập câu hỏi cho AI..."
+                    rows={1}
                     
                   />
                   <button className="composer__button" type="submit" disabled={!canSend}>

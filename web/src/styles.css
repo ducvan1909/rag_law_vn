@@ -47,7 +47,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   font: inherit;
 }
 
@@ -397,6 +398,10 @@ h1 {
   color: var(--text);
   outline: none;
   font-size: 1.05rem;
+  line-height: 1.45;
+  max-height: calc((1.05rem * 1.45 * 3) + 32px);
+  overflow-y: auto;
+  resize: none;
 }
 
 .composer__input::placeholder {
