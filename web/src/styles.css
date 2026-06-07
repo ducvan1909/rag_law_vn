@@ -37,6 +37,7 @@ body,
 #root {
   min-height: 100%;
   margin: 0;
+  height: 100%;
 }
 
 body {
@@ -51,10 +52,12 @@ input {
 }
 
 .shell {
+  height: 100vh;
   min-height: 100vh;
   padding: 32px 32px 32px 144px;
   display: grid;
-  place-items: start center;
+  place-items: center;
+  overflow: hidden;
 }
 
 .left-rail {
@@ -126,11 +129,15 @@ input {
 }
 
 .hero {
-width: min(1120px, calc(100vw - 176px));  display: grid;
+  width: min(1120px, calc(100vw - 176px));
+  display: grid;
   gap: 24px;
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 64px);
+  min-height: 0;
   grid-template-rows: auto minmax(0, 1fr);
   align-items: stretch;
+  justify-items: center;
+  overflow: hidden;
 }
 
 .hero--screen {
@@ -141,7 +148,7 @@ width: min(1120px, calc(100vw - 176px));  display: grid;
 
 .chat-stack {
   width: 100%;
-  max-width: none;
+  height: 100%;
   justify-self: center;
   align-self: stretch;
   display: grid;
@@ -298,7 +305,9 @@ h1 {
   flex: 1;
   min-height: 0;
   width: 100%;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
   display: grid;
   align-content: start;
   justify-items: start;
@@ -344,6 +353,39 @@ h1 {
   background: var(--panel-bg);
   border: 1px solid var(--border);
   overflow: hidden;
+}
+.bubble--thinking {
+  opacity: 0.8;
+  font-style: italic;
+}
+
+.thinking-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05em;
+}
+
+.thinking-dots {
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.thinking-dots__dot {
+  display: inline-block;
+  animation: thinking-dot-bounce 0.9s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes thinking-dot-bounce {
+  0%,
+  80%,
+  100% {
+    transform: translateY(0);
+  }
+
+  40% {
+    transform: translateY(-0.22em);
+  }
 }
 
 .composer__input {
@@ -722,17 +764,19 @@ h1 {
 
   .hero {
     width: 100%;
-    min-height: calc(100vh - 136px);
+    height: calc(100vh - 136px);
+    min-height: 0;
   }
 
   .panel {
-    height: min(560px, calc(100vh - 160px));
+    height: 100%;
     padding: 14px;
     border-radius: 20px;
   }
 
   .chat-stack {
     width: 100%;
+    height: 100%;
   }
 
   .chat-actions {
