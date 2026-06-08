@@ -5,11 +5,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-import numpy as np
-
 import torch
 from sentence_transformers import SentenceTransformer
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, pipeline
 import chromadb
 
 from database.mysql_model import PDChuDe
@@ -23,6 +21,7 @@ embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
 hf_token = os.getenv("HF_TOKEN")
 rerank_model_name = os.getenv("RERANK_MODEL")
 rerank_device = torch.device("cpu")
+classify_model_name = os.getenv("CLASSIFY_MODEL")
 MAX_LENGTH = 700
 
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
@@ -37,13 +36,11 @@ PASSAGE_BOUNDARY_PATTERN = re.compile(r"(?<=[.!?;])\s+|\n+")
 class RetrievalResources:
     def __init__(self):
         self.embedding_model = SentenceTransformer(embedding_model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(rerank_model_name)
-        self.rerank_model = (
-            AutoModelForSequenceClassification.from_pretrained(rerank_model_name)
-        )
+        self.rerank_tokenizer = AutoTokenizer.from_pretrained(rerank_model_name)
+        self.rerank_model = (AutoModelForSequenceClassification.from_pretrained(rerank_model_name))
         self.rerank_model.to(rerank_device)
         self.rerank_model.eval()
-
+        self.classify_model = pipeline("zero-shot-classification", model=classify_model_name)
         chroma_client = chromadb.HttpClient(host=chroma_host, port=chroma_port)
         self.collection = chroma_client.get_collection(collection_name)
         self.topics = [row[0] for row in PDChuDe.select(PDChuDe.ten).tuples()]
@@ -88,7 +85,7 @@ def retrieve(query, resources, n_results=5, timings=None):
     reranked_results = rerank(
         query,
         raw_results,
-        resources.tokenizer,
+        resources.rerank_tokenizer,
         resources.rerank_model,
     )
     rerank_finished_at = time.perf_counter()
@@ -118,11 +115,11 @@ def retrieve(query, resources, n_results=5, timings=None):
             }
         )
 
-    return reranked_results[:n_results]
+    return reranked_results
 
 
 #Rerank các kết quả truy vấn từ chromadb
-def rerank(query, results, tokenizer, rerank_model, batch_size=4):
+def rerank(query, results, tokenizer, rerank_model, batch_size=10):
     if not results:
         return results
     if batch_size <= 0:
@@ -132,8 +129,7 @@ def rerank(query, results, tokenizer, rerank_model, batch_size=4):
         scores = []
         for start in range(0, len(results), batch_size):
             pairs = [
-                [query, result["document"]]
-                for result in results[start:start + batch_size]
+                [query, result["document"]] for result in results[start:start + batch_size]
             ]
             inputs = tokenizer(
                 pairs,
@@ -157,21 +153,32 @@ def rerank(query, results, tokenizer, rerank_model, batch_size=4):
 
     return sorted(results, key=lambda result: result["rerank_score"], reverse=True)
 
-def classify(retrieval_resources):
-    print(retrieval_resources.topics)
-    # sth more
+def classify(query, topics, classify_model):
+    output = classify_model(query, topics, hypothesis_template="Câu hỏi pháp luật này thuộc lĩnh vực {}.", multi_label=True)
+    scores = [{topic: score} for topic, score in zip(output["labels"], output["scores"])]
+    return scores
 
 if __name__ == "__main__":
     db.connect(reuse_if_open=True)
     resources = RetrievalResources()
-    # query = ""
-    # while query != "exit":
-    #     query = input("Enter query: ")
-    #     if query == "exit":
-    #         break
-    #     results = retrieve(query, resources=resources, n_results=5)
-    #     for result in results:
-    #         print(result["document"])
-    #         print("___________________")
-    classify(resources)
+    query = ""
+    while query != "exit":
+        query = input("Enter query: ")
+        if query == "exit":
+            break
+        labels = classify(query, resources.topics, resources.classify_model)
+        i = 0
+        for label in labels:
+            i += 1
+            print(i, label)
+        results = retrieve(query, resources=resources, n_results=5)
+        for result in results:
+            print(f'{result["document"]}\n{result["rerank_score"]}')
+            labels = classify(result["document"], resources.topics, resources.classify_model)
+            i = 0
+            for label in labels:
+                i += 1
+                print(i, label)
+            print("___________________")
+
     db.close()
