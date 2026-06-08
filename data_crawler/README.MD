@@ -35,18 +35,18 @@ pip install -r requirements.txt
 - Lấy cấu trúc các văn bản luật từ pháp điển
 
 ```
-..\.venv\Scripts\python.exe .\structure_crawl.py
+python structure_crawl.py
 ```
 
 ## Lấy dữ liệu các văn bản pháp luật
 
 - Cào dữ liệu html các văn bản luật
 ```
-..\.venv\Scripts\python.exe .\document_crawl.py
+python document_crawl.py
 ```
 
 - Chia các văn bản thành các điều và lưu vào database
 
 ```
-..\.venv\Scripts\python.exe .\build_unit.py
+python build_unit.py
 ```
