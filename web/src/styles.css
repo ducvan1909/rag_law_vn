@@ -78,6 +78,10 @@ textarea {
   justify-content: flex-start;
 }
 
+.mobile-rail-toggle {
+  display: none;
+}
+
 :root.theme-dark .left-rail {
   background: #2a2a2a;
 }
@@ -740,7 +744,31 @@ h1 {
 
 @media (max-width: 720px) {
   .shell {
-    padding: 120px 16px 16px;
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: 88px 16px 16px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .mobile-rail-toggle {
+    position: fixed;
+    top: 4px;
+    left: 50%;
+    z-index: 31;
+    width: min(68vw, 240px);
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    transform: translateX(-50%);
+    touch-action: manipulation;
+  }
+
+  .mobile-rail-toggle__icon {
+    display: block;
+    width: 100%;
+    height: auto;
   }
 
   .left-rail {
@@ -755,6 +783,20 @@ h1 {
     flex-direction: row;
     align-items: stretch;
     overflow-x: auto;
+    transition: transform 220ms ease, opacity 220ms ease;
+    will-change: transform, opacity;
+  }
+
+  .left-rail--mobile-collapsed {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .left-rail--mobile-open {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .rail-bottom-actions {
@@ -770,7 +812,7 @@ h1 {
 
   .hero {
     width: 100%;
-    height: calc(100vh - 136px);
+    height: calc(100dvh - 104px);
     min-height: 0;
   }
 
@@ -810,7 +852,7 @@ h1 {
 
   .history-panel--modal {
     width: min(100%, 920px);
-    max-height: calc(100vh - 32px);
+    max-height: calc(100dvh - 32px);
   }
 
   .history-panel__back,

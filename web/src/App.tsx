@@ -7,6 +7,8 @@ import {
   useState,
 } from "react";
 import donateQr from "./Rickrolling_QR_code.png";
+import railCloseIcon from "./assets/rail-close.png";
+import railOpenIcon from "./assets/rail-open.png";
 
 type MessageRole = "assistant" | "system" | "user";
 
@@ -221,6 +223,7 @@ export default function App() {
   const [isSending, setIsSending] = useState(false);
   const [screen, setScreen] = useState<"chat" | "history" | "donate" | "info">("chat");
   const [historyVisibleCount, setHistoryVisibleCount] = useState(HISTORY_BATCH_SIZE);
+  const [isMobileRailOpen, setIsMobileRailOpen] = useState(false);
   const pendingReplyRef = useRef<{ conversationId: string; messageId: number } | null>(null);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem("theme");
@@ -250,6 +253,10 @@ export default function App() {
     }
     setSelectedHistoryConversation(null);
   }, [screen]);
+
+  function closeMobileRail() {
+    setIsMobileRailOpen(false);
+  }
 
   const messagesRef = useRef<HTMLDivElement | null>(null);
   const composerInputRef = useRef<HTMLTextAreaElement | null>(null);
@@ -313,11 +320,13 @@ export default function App() {
     setIsSending(false);
     setScreen("chat");
     setSelectedHistoryConversation(null);
+    closeMobileRail();
   }
 
   function openHistoryScreen() {
     setSelectedHistoryConversation(null);
     setScreen("history");
+    closeMobileRail();
   }
 
   function openConversation(conversation: Conversation) {
@@ -332,6 +341,7 @@ export default function App() {
     setIsSending(false);
     setSelectedHistoryConversation(null);
     setScreen("chat");
+    closeMobileRail();
   }
 
   function closeConversationPopup() {
@@ -439,11 +449,28 @@ export default function App() {
 
     return (
       <main className="shell">
-        <aside className="left-rail" >
+        <button
+          type="button"
+          className="mobile-rail-toggle"
+          onClick={() => setIsMobileRailOpen((current) => !current)}
+          aria-label={isMobileRailOpen ? "Thu gọn thanh điều hướng" : "Mở thanh điều hướng"}
+          aria-expanded={isMobileRailOpen}
+        >
+          <img
+            className="mobile-rail-toggle__icon"
+            src={isMobileRailOpen ? railCloseIcon : railOpenIcon}
+            alt=""
+            aria-hidden="true"
+          />
+        </button>
+        <aside className={`left-rail ${isMobileRailOpen ? "left-rail--mobile-open" : "left-rail--mobile-collapsed"}`}>
           <button
             type="button"
             className="rail-button rail-button--theme"
-            onClick={() => setIsDarkMode((current) => !current)}
+            onClick={() => {
+              setIsDarkMode((current) => !current);
+              closeMobileRail();
+            }}
             aria-pressed={isDarkMode}
             
           
@@ -453,7 +480,10 @@ export default function App() {
           <button
             type="button"
             className="rail-button rail-button--home"
-            onClick={() => setScreen("chat")}
+            onClick={() => {
+              setScreen("chat");
+              closeMobileRail();
+            }}
            
             aria-pressed={screen === "chat"}
           >
@@ -480,7 +510,10 @@ export default function App() {
             <button
               type="button"
               className="rail-button rail-button--star"
-              onClick={() => setScreen("donate")}
+              onClick={() => {
+                setScreen("donate");
+                closeMobileRail();
+              }}
               aria-pressed={screen === "donate"}
               
             >
@@ -489,7 +522,10 @@ export default function App() {
             <button
               type="button"
               className="rail-button rail-button--info"
-              onClick={() => setScreen("info")}
+              onClick={() => {
+                setScreen("info");
+                closeMobileRail();
+              }}
               aria-pressed={screen === "info"}
              
             >
