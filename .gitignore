@@ -21,7 +21,7 @@ env/
 # Frontend
 web/node_modules/
 web/dist/
-web/.npm-cache
+.npm-cache
 
 # OS
 .DS_Store
