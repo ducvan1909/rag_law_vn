@@ -17,11 +17,13 @@ env/
 
 # Logs
 *.log
+*.err
 
 # Frontend
 web/node_modules/
 web/dist/
 .npm-cache
+web/.npm-cache
 
 # OS
 .DS_Store
