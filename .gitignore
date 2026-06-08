@@ -18,6 +18,11 @@ env/
 # Logs
 *.log
 
+# Frontend
+web/node_modules/
+web/dist/
+web/.npm-cache
+
 # OS
 .DS_Store
 Thumbs.db
