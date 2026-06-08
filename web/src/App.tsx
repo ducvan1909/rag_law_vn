@@ -456,6 +456,9 @@ export default function App() {
           aria-label={isMobileRailOpen ? "Thu gọn thanh điều hướng" : "Mở thanh điều hướng"}
           aria-expanded={isMobileRailOpen}
         >
+          <span className="mobile-rail-toggle__fallback" aria-hidden="true">
+            {isMobileRailOpen ? "⌃" : "⌄"}
+          </span>
           <img
             className="mobile-rail-toggle__icon"
             src={isMobileRailOpen ? railCloseIcon : railOpenIcon}
