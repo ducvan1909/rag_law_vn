@@ -11,7 +11,7 @@ env/
 
 # PyCharm
 .idea/
-
+*.iml
 # Environment variables
 .env
 

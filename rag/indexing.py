@@ -149,7 +149,7 @@ def index_units(embedding_model, units, collection):
                 retrieval_documents = []
         indexed_units += 1
     if ids:
-        embeddings = embedding_model.encode(documents, batch_size=EMBED_BATCH_SIZE)
+        embeddings = embedding_model.encode(retrieval_documents, batch_size=EMBED_BATCH_SIZE)
         upsert_batch(collection, ids, documents, embeddings, metadatas)
         indexed_chunks += len(ids)
     print(f"indexed units: {indexed_units}, indexed chunks: {indexed_chunks}")
