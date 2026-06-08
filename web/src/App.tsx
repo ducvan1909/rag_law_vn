@@ -7,8 +7,6 @@ import {
   useState,
 } from "react";
 import donateQr from "./Rickrolling_QR_code.png";
-import railCloseIcon from "./assets/rail-close.png";
-import railOpenIcon from "./assets/rail-open.png";
 
 type MessageRole = "assistant" | "system" | "user";
 
@@ -451,20 +449,14 @@ export default function App() {
       <main className="shell">
         <button
           type="button"
-          className="mobile-rail-toggle"
+          className={`mobile-rail-toggle${isMobileRailOpen ? " mobile-rail-toggle--open" : ""}`}
           onClick={() => setIsMobileRailOpen((current) => !current)}
           aria-label={isMobileRailOpen ? "Thu gọn thanh điều hướng" : "Mở thanh điều hướng"}
           aria-expanded={isMobileRailOpen}
         >
           <span className="mobile-rail-toggle__fallback" aria-hidden="true">
-            {isMobileRailOpen ? "⌃" : "⌄"}
+            {isMobileRailOpen ? "<" : ">"}
           </span>
-          <img
-            className="mobile-rail-toggle__icon"
-            src={isMobileRailOpen ? railCloseIcon : railOpenIcon}
-            alt=""
-            aria-hidden="true"
-          />
         </button>
         <aside className={`left-rail ${isMobileRailOpen ? "left-rail--mobile-open" : "left-rail--mobile-collapsed"}`}>
           <button

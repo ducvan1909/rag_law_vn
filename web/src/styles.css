@@ -746,7 +746,7 @@ h1 {
   .shell {
     height: 100dvh;
     min-height: 100dvh;
-    padding: 88px 16px 16px;
+    padding: 16px;
     overflow: hidden;
     position: relative;
   }
@@ -754,24 +754,28 @@ h1 {
   .mobile-rail-toggle {
     position: fixed;
     top: calc(env(safe-area-inset-top) + 2px);
-    left: 50%;
+    left: 0;
     z-index: 999;
-    width: min(72vw, 260px);
-    height: 38px;
-    padding: 4px 12px 2px;
+    width: fit-content;
+    height: auto;
+    padding: 4px 10px 2px;
     border: 2px solid var(--border);
     border-top: 0;
     border-radius: 0 0 14px 14px;
     background: var(--button-bg);
     cursor: pointer;
-    transform: translateX(-50%);
     touch-action: manipulation;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
     box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
     -webkit-tap-highlight-color: transparent;
+    white-space: nowrap;
+    transition: left 220ms ease;
+  }
+
+  .mobile-rail-toggle--open {
+    left: 104px;
   }
 
   .mobile-rail-toggle:focus-visible {
@@ -785,52 +789,45 @@ h1 {
     line-height: 1;
     font-weight: 700;
     transform: translateY(-1px);
-  }
-
-  .mobile-rail-toggle__icon {
-    display: block;
     width: auto;
-    max-width: 46px;
-    height: auto;
-    flex: 0 0 auto;
   }
 
   .left-rail {
     top: 0;
     left: 0;
-    right: 0;
-    width: auto;
-    height: 88px;
-    padding: 8px 4px;
+    right: auto;
+    bottom: 0;
+    width: 104px;
+    height: 100dvh;
+    padding: calc(env(safe-area-inset-top) + 12px) 2px 12px;
     border: none;
     border-radius: 0;
-    flex-direction: row;
+    flex-direction: column;
     align-items: stretch;
-    overflow-x: auto;
-    transition: transform 220ms ease, opacity 220ms ease;
-    will-change: transform, opacity;
+    overflow: hidden;
+    transition: transform 220ms ease;
+    will-change: transform;
+    z-index: 40;
   }
 
   .left-rail--mobile-collapsed {
-    transform: translateY(-100%);
-    opacity: 0;
+    transform: translateX(-100%);
     pointer-events: none;
   }
 
   .left-rail--mobile-open {
-    transform: translateY(0);
-    opacity: 1;
     pointer-events: auto;
+    transform: translateX(0);
   }
 
   .rail-bottom-actions {
-    margin-top: 0;
-    flex-direction: row;
+    margin-top: auto;
+    flex-direction: column;
   }
 
   .rail-button {
-    width: auto;
-    min-width: 84px;
+    width: 100%;
+    min-width: 0;
     min-height: 64px;
   }
 
