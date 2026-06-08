@@ -760,8 +760,8 @@ h1 {
     height: auto;
     padding: 4px 10px 2px;
     border: 2px solid var(--border);
-    border-top: 0;
-    border-radius: 0 0 14px 14px;
+    border-left: 0;
+    border-radius: 0 14px 14px 0;
     background: var(--button-bg);
     cursor: pointer;
     touch-action: manipulation;
