@@ -455,7 +455,7 @@ export default function App() {
           aria-expanded={isMobileRailOpen}
         >
           <span className="mobile-rail-toggle__fallback" aria-hidden="true">
-            {isMobileRailOpen ? "<" : ">"}
+            {isMobileRailOpen ? "<<" : ">>"}
           </span>
         </button>
         <aside className={`left-rail ${isMobileRailOpen ? "left-rail--mobile-open" : "left-rail--mobile-collapsed"}`}>
