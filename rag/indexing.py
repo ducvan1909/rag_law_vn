@@ -16,13 +16,13 @@ from database.mysql_model import VBPLUnit
 
 model_name = os.getenv("EMBEDDING_MODEL", "truro7/vn-law-embedding")
 hf_token = os.getenv("HF_TOKEN")
-collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embeds")
+collection_name = os.getenv("CHROMA_COLLECTION", "vbpl_embed")
 chroma_host = os.getenv("CHROMA_HOST", "localhost")
 chroma_port = int(os.getenv("CHROMA_PORT", "8001"))
-embedding_device = os.getenv("EMBEDDING_DEVICE", "auto")
+embedding_device = os.getenv("EMBEDDING_DEVICE", "cpu")
 EMBED_BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "128"))
 MAX_TOKENS = 500
-CHUNK_OVERLAP = 10
+CHUNK_OVERLAP = 50
 
 def resolve_device(device_name):
     requested = (device_name or "auto").strip().lower()
@@ -74,7 +74,7 @@ def iter_data(limit=None):
     for row in query.iterator():
         yield row
 
-def split_token_window(tokenizer, text, max_tokens=MAX_TOKENS, overlap_tokens=CHUNK_OVERLAP):
+def split_token_window(tokenizer, text, max_tokens=MAX_TOKENS-100, overlap_tokens=CHUNK_OVERLAP):
     token_ids = tokenizer.encode(text, add_special_tokens=False)
     if len(token_ids) <= max_tokens:
         return [(text, len(token_ids))]
@@ -99,6 +99,17 @@ def split_token_window(tokenizer, text, max_tokens=MAX_TOKENS, overlap_tokens=CH
 
     return chunks
 
+def build_retrieval_text(unit, chunk):
+    documents = [
+        f"Chủ đề: {unit['chude']}",
+        f"Đề mục: {unit['demuc']}",
+        f"Chương: {unit['chuong']}",
+        f"Điều: {unit['dieu']}",
+        f"Văn bản: {unit['ten_vbpl']}",
+        f"Nội dung: {chunk}",
+    ]
+    return "\n".join(document for document in documents if document.split(": ", 1)[-1])
+
 def build_metadata(unit, chunk_token_count):
     metadata = {
         "unit_id": unit["id"],
@@ -117,6 +128,7 @@ def index_units(embedding_model, units, collection):
     ids = []
     metadatas = []
     documents = []
+    retrieval_documents = []
     indexed_units = 0
     indexed_chunks = 0
     for unit in units:
@@ -125,14 +137,16 @@ def index_units(embedding_model, units, collection):
             metadatas.append(build_metadata(unit, chunk_token_count))
             ids.append(f"Unit {indexed_units} - Chunk {index_chunk}")
             documents.append(chunk)
+            retrieval_documents.append(build_retrieval_text(unit, chunk))
             if len(ids) >= EMBED_BATCH_SIZE:
-                embeddings = embedding_model.encode(documents, batch_size=EMBED_BATCH_SIZE)
+                embeddings = embedding_model.encode(retrieval_documents, batch_size=EMBED_BATCH_SIZE)
                 upsert_batch(collection, ids, documents, embeddings, metadatas)
                 indexed_chunks += len(ids)
                 print(f"indexed units: {indexed_units + 1}, indexed chunks: {indexed_chunks}")
                 ids = []
                 metadatas = []
                 documents = []
+                retrieval_documents = []
         indexed_units += 1
     if ids:
         embeddings = embedding_model.encode(documents, batch_size=EMBED_BATCH_SIZE)
@@ -147,6 +161,18 @@ def upsert_batch(collection, ids, documents, embeddings, metadatas):
         metadatas=metadatas,
         embeddings=embeddings,
     )
+
+def build_rerank_text(result):
+    metadata = result["metadata"]
+
+    return "\n".join([
+        f"Văn bản: {metadata['ten_vbpl']}",
+        f"Chủ đề: {metadata['chude']}",
+        f"Đề mục: {metadata['demuc']}",
+        f"Chương: {metadata['chuong']}",
+        f"Điều: {metadata['dieu']}",
+        f"Nội dung: {result['document']}",
+    ])
 
 if __name__ == "__main__":
     started_at = time.perf_counter()
