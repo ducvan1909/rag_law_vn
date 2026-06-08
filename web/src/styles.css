@@ -753,22 +753,46 @@ h1 {
 
   .mobile-rail-toggle {
     position: fixed;
-    top: 4px;
+    top: calc(env(safe-area-inset-top) + 2px);
     left: 50%;
-    z-index: 31;
-    width: min(68vw, 240px);
-    padding: 0;
-    border: 0;
-    background: transparent;
+    z-index: 999;
+    width: min(72vw, 260px);
+    height: 38px;
+    padding: 4px 12px 2px;
+    border: 2px solid var(--border);
+    border-top: 0;
+    border-radius: 0 0 14px 14px;
+    background: var(--button-bg);
     cursor: pointer;
     transform: translateX(-50%);
     touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.18);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-rail-toggle:focus-visible {
+    outline: 2px solid var(--border);
+    outline-offset: 2px;
+  }
+
+  .mobile-rail-toggle__fallback {
+    display: inline-block;
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 700;
+    transform: translateY(-1px);
   }
 
   .mobile-rail-toggle__icon {
     display: block;
-    width: 100%;
+    width: auto;
+    max-width: 46px;
     height: auto;
+    flex: 0 0 auto;
   }
 
   .left-rail {
