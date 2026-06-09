@@ -1,7 +1,6 @@
-peewee
-pymysql
-python-dotenv
-requests
-bs4
-beautifulsoup4
+beautifulsoup4==4.14.3
+peewee==4.0.5
+pymysql==1.2.0
+python-dotenv==1.2.2
+requests==2.34.2
 
